@@ -1,0 +1,11 @@
+
+export(Boruta)
+export(TentativeRoughFix)
+export(getConfirmedFormula)
+export(getNonRejectedFormula)
+export(attStats)
+
+S3method(print, Boruta)
+S3method(plot, Boruta)
+S3method(Boruta, formula)
+S3method(Boruta, default)
