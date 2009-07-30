@@ -1,5 +1,5 @@
 # Function that estimates rough decision for Tentative attributes
-# left after Boruta run
+# left after Boruta run.
 # Author: Miron B. Kursa
 ###############################################################################
 
@@ -17,6 +17,7 @@ TentativeRoughFix<-function(x,averageOver='finalRound'){
 		if(averageOver=='allRounds') {averageOver<-nRuns} else {
 			averageOver<-1;	
 		}}
+			
 	}
 	if(averageOver<1) stop('Bad averageOver argument!');
 	if(averageOver>nRuns) stop('averageOver exceeds number of runs!');
@@ -27,5 +28,6 @@ TentativeRoughFix<-function(x,averageOver='finalRound'){
 	ans$originalDecision<-x$finalDecision;
 	ans$finalDecision[tentIdx[dd]]<-'Confirmed';
 	ans$finalDecision[tentIdx[!dd]]<-'Rejected';
+	
 	return(ans);
 }

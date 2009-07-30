@@ -1,2 +1,8 @@
+Changes in 1.1:
+	- Fixed a bug making get*Formula functions throw error
+	when Boruta was run with formula provided as a variable. 
+	- Fixed minor documentation inconsistency.
+
+
 Changes in 1.0:
-	First public release.
+	- First public release.

@@ -11,7 +11,7 @@
 \usage{
 \method{plot}{Boruta}(x,colCode=c('green','yellow','red','blue'),sort=TRUE,
 		whichRand=c(TRUE,TRUE,TRUE),col=NULL,
-		xlab='Attributes',ylab='Z-Score',...)
+		xlab='Attributes',ylab='Z-Scores',...)
 }
 
 \arguments{

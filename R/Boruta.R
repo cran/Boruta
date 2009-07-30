@@ -1,4 +1,4 @@
-# Core of Boruta
+# Core of Boruta.
 # Author: Miron B. Kursa, based on the idea & original code by Witold R. Rudnicki
 ###############################################################################
 
@@ -55,7 +55,7 @@ Boruta.default<-function(x,y,confidence=0.999,maxRuns=100,light=TRUE,doTrace=0,.
 		toAccept<-hitReg[roundLevel,]>qbinom(confidence,runs,0.5,lower.tail=TRUE);
 		((roundLevel==1) & decReg=="Tentative" & toAccept)->toAccept;
 		#If attribute is significantly more frequent worse than randMax, its claimed Rejected (=Random). 
-		#In initial round, criterion for beeing random is lowered, in order to compansate fluctuations. 
+		#In initial round, criterion for being random is lowered, in order to compensate fluctuations. 
 		#Thus we don't judge if attribute is confirmed till the final round.
 		toReject<-hitReg[roundLevel,]<qbinom(confidence,runs,0.5,lower.tail=FALSE);
 		(decReg=="Tentative" & toReject)->toReject;
@@ -131,7 +131,8 @@ Boruta.formula<-function(formula,data=.GlobalEnv,...){
 	##Run Boruta
 	ans<-Boruta.default(df,dec,...);
 	ans$call<-match.call();
-	ans$call[[1]]<-as.name('Boruta');
+	ans$call[[1]]<-as.name('Boruta'); 
+	formula->ans$call[["formula"]];
 	return(ans);
 }
 
