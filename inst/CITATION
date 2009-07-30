@@ -1,0 +1,20 @@
+citHeader("To cite Boruta in publications use:")
+
+citEntry(entry = "Article",
+  title        = "Feature Selection with the {Boruta} Package",
+  author       = personList(as.person("Miron B. Kursa"),
+                   as.person("Witold R. Rudnicki")),
+  journal      = "Journal of Statistical Software",
+  year         = "2010",
+  volume       = "36",
+  number       = "11",
+  pages        = "1--13",
+  url          = "http://www.jstatsoft.org/v36/i11/",
+
+  textVersion  =
+  paste("Miron B. Kursa, Witold R. Rudnicki (2010).",
+        "Feature Selection with the Boruta Package.",
+        "Journal of Statistical Software, 36(11), 1-13.",
+        "URL http://www.jstatsoft.org/v36/i11/.")
+)
+

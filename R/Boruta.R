@@ -142,18 +142,18 @@ print.Boruta<-function(x,...){
 	cat(paste('Boruta performed ',dim(x$ZScoreHistory)[1],' randomForest runs in ',format(x$timeTaken),'.\n',sep=''));
 	if(x$roughfixed) cat(paste('Tentatives roughfixed over ',x$averageOver,' last randomForest runs.\n',sep=''));
 	if(sum(x$finalDecision=='Confirmed')==0) {
-		cat('\tNo attributes has been deemed important\n')} else {
-		cat('\t',sum(x$finalDecision=='Confirmed'),' attributes confirmed important: ');	
-		cat(paste(sep='',collapse=' ',names(x$finalDecision[x$finalDecision=='Confirmed'])),'\n');
+		cat('        No attributes has been deemed important\n')} else {
+		writeLines(strwrap(paste(sum(x$finalDecision=='Confirmed'),' attributes confirmed important: ',
+		 paste(sep='',collapse=' ',names(x$finalDecision[x$finalDecision=='Confirmed']))),indent=8));
 	}
 	if(sum(x$finalDecision=='Rejected')==0) {
-		cat('\tNo attributes has been deemed unimportant\n')} else {
-		cat('\t',sum(x$finalDecision=='Rejected'),' attributes confirmed unimportant: ');
-		cat(paste(sep='',collapse=' ',names(x$finalDecision[x$finalDecision=='Rejected'])),'\n');
+		cat('        No attributes has been deemed unimportant\n')} else {
+		writeLines(strwrap(paste(sum(x$finalDecision=='Rejected'),' attributes confirmed unimportant: ',
+		 paste(sep='',collapse=' ',names(x$finalDecision[x$finalDecision=='Rejected']))),indent=8));
 	}
 	if(sum(x$finalDecision=='Tentative')!=0) {
-		cat('\t',sum(x$finalDecision=='Tentative'),' tentative attributes left: ');
-		cat(paste(sep='',collapse=' ',names(x$finalDecision[x$finalDecision=='Tentative'])),'\n');
+		writeLines(strwrap(paste(sum(x$finalDecision=='Tentative'),' tentative attributes left: ',
+		 paste(sep='',collapse=' ',names(x$finalDecision[x$finalDecision=='Tentative']))),indent=8));
 	}		
 }
 
