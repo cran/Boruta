@@ -1,3 +1,8 @@
+Changes in 1.2:
+	- New plotting function plotZHistory.
+	- Changes in manual.
+
+
 Changes in 1.1:
 	- Fixed a bug making get*Formula functions throw error
 	when Boruta was run with formula provided as a variable. 

@@ -3,6 +3,7 @@ export(Boruta)
 export(TentativeRoughFix)
 export(getConfirmedFormula)
 export(getNonRejectedFormula)
+export(plotZHistory)
 export(attStats)
 
 S3method(print, Boruta)
