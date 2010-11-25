@@ -22,8 +22,9 @@ plot.Boruta<-function(x,colCode=c('green','yellow','red','blue'),sort=TRUE,which
 		col=NULL,xlab='Attributes',ylab='Z-Scores',...){
 	#Checking arguments
 	if(class(x)!='Boruta') stop('This function needs Boruta object as an argument.');
-	#Removal of -Infs
-	as.list(x$ZScoreHistory)->lz;lz<-lapply(lz,function(x) x[is.finite(x)]);
+	#Removal of -Infs and conversion to a list
+        lz<-lapply(1:ncol(x$ZScoreHistory),function(i) x$ZScoreHistory[is.finite(x$ZScoreHistory[,i]),i]);
+        colnames(x$ZScoreHistory)->names(lz);
 	#Selection of randomised meta-attributes
 	numRand<-sum(whichRand);
 	lz[c(rep(TRUE,length(x$finalDecision)),whichRand)]->lz;

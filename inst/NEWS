@@ -1,3 +1,8 @@
+Changes in 1.5:
+	- Improved performance of dealing with huge inputs.
+	- Removed redundant decisionHistory from output.
+
+
 Changes in 1.4:
 	- Fixed manual entry suggesting that Boruta can only work 
 	for classification problems. (Thanks to Allan Engelhardt 

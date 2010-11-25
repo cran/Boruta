@@ -1,18 +1,19 @@
 Package: Boruta
 Title: Boruta -- a tool for finding significant attributes in
         information systems
-Version: 1.4
+Version: 1.5
 Date: 2010-11-25
 Depends: R (>= 2.0.0), randomForest
 Suggests: mlbench
 Author: Algorithm by Witold R. Rudnicki <W.Rudnicki@icm.edu.pl>, R
         implementation by Miron B. Kursa <M.Kursa@icm.edu.pl>.
 Description: Boruta is a feature selection algorithm based on a
-        randomForest predictor. It selects the full set of all
-        important attributes by comparing original attributes
-        importance with datum importance of their randomised copies.
+        randomForest classifier. It selects the full set of all
+        relevant attributes by comparing original attributes'
+        importances with importance achievable at random estimated
+        using their randomised copies.
 Maintainer: Miron B. Kursa <M.Kursa@icm.edu.pl>
 License: GPL (>= 2)
-Packaged: 2010-11-25 22:07:25 UTC; mbq
+Packaged: 2010-12-15 11:16:13 UTC; mbkursa
 Repository: CRAN
-Date/Publication: 2010-11-26 07:23:43
+Date/Publication: 2010-12-15 11:33:21

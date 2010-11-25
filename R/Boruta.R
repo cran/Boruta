@@ -22,7 +22,7 @@ Boruta.default<-function(x,y,confidence=0.999,maxRuns=100,light=TRUE,doTrace=0,.
 		stop('maxRuns must be greater than 10.')
 	
 	##rfCaller expands the information system with newly built random attributes.
-	rfCaller<-function(){
+	rfCaller<-function(roundLevel){
 		#Depending on wheather we use light or force version of Boruta, we remove Rejected attributes
 		if(light) xrand<-x[,decReg!="Rejected",drop=F] else xrand<-x;
 		#Thre must be at least 5 random attributes.
@@ -41,35 +41,35 @@ Boruta.default<-function(x,y,confidence=0.999,maxRuns=100,light=TRUE,doTrace=0,.
 		impRaw->imp[c(decReg!="Rejected",rep(TRUE,nRandA))];
 		randI<-rev(sort(imp[(nAtt+1):length(imp)]));imp[1:nAtt]->imp;
 		#Update hits register	
-		sapply(imp,function(x) x>randI)[1:5,]->hits;
+ 		randThre<-randI[roundLevel];
+		imp>randThre->hits;
 		hitReg[hits]<<-hitReg[hits]+1;
 		#Update ZHistory
 		imp<-c(imp,randMax=max(randI),randMean=mean(randI),randMin=min(randI));
-		ZHistory<<-rbind(ZHistory,imp,deparse.level=0);names(imp)->>names(ZHistory);
+		ZHistory<<-c(ZHistory,list(imp));
 		return(NULL);
 	}
 	
 	##doTests checks whether number of hits is significant.
-	doTests<-function(roundLevel,runs){
+	doTests<-function(runs,doAcceptances){
 		#If attribute is significantly more frequent better than randMax, its claimed Confirmed (in final round only)
-		toAccept<-hitReg[roundLevel,]>qbinom(confidence,runs,0.5,lower.tail=TRUE);
-		((roundLevel==1) & decReg=="Tentative" & toAccept)->toAccept;
+		toAccept<-hitReg>qbinom(confidence,runs,0.5,lower.tail=TRUE);
+		(doAcceptances & decReg=="Tentative" & toAccept)->toAccept;
 		#If attribute is significantly more frequent worse than randMax, its claimed Rejected (=Random). 
 		#In initial round, criterion for being random is lowered, in order to compensate fluctuations. 
 		#Thus we don't judge if attribute is confirmed till the final round.
-		toReject<-hitReg[roundLevel,]<qbinom(confidence,runs,0.5,lower.tail=FALSE);
+		toReject<-hitReg<qbinom(confidence,runs,0.5,lower.tail=FALSE);
 		(decReg=="Tentative" & toReject)->toReject;
 		#Updating decReg
 		decReg[toAccept]<<-"Confirmed";
 		"Rejected"->>decReg[toReject];
-		#Archive the result
-		decHistory<<-rbind(decHistory,decReg);
+		#Trace the result
 		nAcc<-sum(toAccept);
 		nRej<-sum(toReject);
 		if(doTrace==2 & nAcc>0) cat('\n',nAcc,' attributes confirmed after this test: ',attNames[toAccept],'\n') 
 		if(doTrace==2 & nRej>0) cat('\n',nRej,' attributes rejected after this test: ',attNames[toReject],'\n') 
 	}
-	
+
 	##Creating some useful constants
 	nAtt<-dim(x)[2];nObjects<-dim(x)[1]; 
 	attNames<-names(x);confLevels<-c("Tentative","Confirmed","Rejected");
@@ -79,18 +79,17 @@ Boruta.default<-function(x,y,confidence=0.999,maxRuns=100,light=TRUE,doTrace=0,.
 	
 	##Initiating registers
 	decReg<-factor(rep("Tentative",nAtt),levels=confLevels);
-	hitReg<-data.frame(matrix(0,5,nAtt));names(hitReg)<-attNames; 
-	ZHistory<-data.frame(matrix(0,0,nAtt+3)); 
-	decHistory<-data.frame(matrix(0,0,nAtt));
+	hitReg<-rep(0,nAtt);names(hitReg)<-attNames; 
+	ZHistory<-list();
 	
 	##Main loop
 	#Initial rounds
 	roundLevels<-c(5,3,2);
 	for(round in 1:3) if(any(decReg!="Rejected")){
 	 if(doTrace>0) cat(sprintf('Initial round %d: ',round));
-	 replicate(roundRuns,rfCaller());
-	 doTests(roundLevels[round],roundRuns);
-	 hitReg[,]<-0;
+	 replicate(roundRuns,rfCaller(roundLevels[round]));
+	 doTests(roundRuns,FALSE);
+	 hitReg<-0*hitReg;
 	 if(doTrace>0) cat('\n');
 	}
 	
@@ -98,15 +97,16 @@ Boruta.default<-function(x,y,confidence=0.999,maxRuns=100,light=TRUE,doTrace=0,.
 	if(doTrace>0) cat('Final round: ');
 	runInFinalRound<-0;
 	while(any(decReg=="Tentative") & runInFinalRound<maxRuns){
-		rfCaller(); runInFinalRound+1->runInFinalRound;
-		if(runInFinalRound>=roundRuns) doTests(1,runInFinalRound);
+		rfCaller(1); runInFinalRound+1->runInFinalRound;
+		if(runInFinalRound>=roundRuns) doTests(runInFinalRound,TRUE);
 	}
 	
 	##Building result
 	if(doTrace>0) cat('\n');
-	names(decHistory)<-attNames;c(attNames,"randMax","randMean","randMin")->names(ZHistory);
+        ZHistory<-do.call(rbind,ZHistory);
+	#c(attNames,"randMax","randMean","randMin")->names(ZHistory);
 	names(decReg)<-attNames;
-	ans<-list(finalDecision=decReg,decisonHistory=decHistory,ZScoreHistory=ZHistory,
+	ans<-list(finalDecision=decReg,ZScoreHistory=ZHistory,
 			confidence=confidence,maxRuns=maxRuns,light=light,roundRuns=roundRuns,
 			timeTaken=Sys.time()-timeStart,roughfixed=FALSE,call=cl);
 	"Boruta"->class(ans);
@@ -154,7 +154,8 @@ print.Boruta<-function(x,...){
 ##attStats shows a data frame containing decision for attributes and some stats on their ZScores
 attStats<-function(x){
 	if(class(x)!='Boruta') stop('This function needs Boruta object as an argument.');
-	as.list(x$ZScoreHistory)->lz;lz<-lapply(lz,function(x) x[is.finite(x)]);
+	lz<-lapply(1:ncol(x$ZScoreHistory),function(i) x$ZScoreHistory[is.finite(x$ZScoreHistory[,i]),i]);
+        colnames(x$ZScoreHistory)->names(lz);
 	mr<-lz$randMax;lz[1:(length(lz)-3)]->lz;
 	t(sapply(lz,function(x) c(mean(x),median(x),min(x),max(x),sum(mr[1:length(x)]<x)/length(mr))))->st;
 	st<-data.frame(st,x$finalDecision);

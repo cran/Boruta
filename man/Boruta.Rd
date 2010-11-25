@@ -34,8 +34,6 @@
   following components:
   \item{finalDecision}{a factor of three value: \code{Confirmed}, \code{Rejected} or \code{Tentative},
   					   containing final result of feature selection.}
-  \item{decisionHistory}{a data frame containing evolution of decision register during Boruta run.
-  						 Each row corresponds to a situation after one, consecutive test.}
   \item{ZScoreHistory}{a data frame of ZScores of attributes gathered in each randomForest run. 
    Beside predictors' ZScores contains maximal, mean and minimal ZScore of shadow attributes in each run. Rejected
    attributes have \code{-Inf} ZScore assumed.}
