@@ -18,7 +18,7 @@
 \arguments{
   \item{x, formula}{data frame of predictors or a formula describing model to be analysed.}
   \item{data}{data frame containing model variables. Global environment is default.}
-  \item{y}{response vector. Must be a factor.}
+  \item{y}{response vector; factor for classification, numeric vector for regression.}
   \item{confidence}{confidence level. Default value should be used. Lower value may reduce computation time of test runs.}
   \item{maxRuns}{maximal number of randomForest runs in the final round. You may increase it to resolve attributes left \code{Tentative}. }
   \item{doTrace}{0 means no tracing, 1 means printing a "." sign after each randomForest run, 

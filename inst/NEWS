@@ -1,5 +1,15 @@
+Changes in 1.4:
+	- Fixed manual entry suggesting that Boruta can only work 
+	for classification problems. (Thanks to Allan Engelhardt 
+	for spotting this)
+	- Fixed an error occuring when all attributes are claimed 
+	Rejected during one of the initial rounds. (Thanks to
+	Allan Engelhardt for spotting this)
+
+
 Changes in 1.3:
-	- Fixes to the output.
+	- Fixes to the output. (Thanks to Achim Zeileis for 
+	suggesting them)
 
 
 Changes in 1.2:

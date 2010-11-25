@@ -9,7 +9,7 @@ Boruta<-function(x,...){
 
 ##Boruta.default implements actual Boruta algorithm
 Boruta.default<-function(x,y,confidence=0.999,maxRuns=100,light=TRUE,doTrace=0,...){
-	timeStart=Sys.time();
+	timeStart<-Sys.time();
 	require(randomForest);
 	cl<-match.call();
 	cl[[1]]<-as.name('Boruta');
@@ -24,7 +24,7 @@ Boruta.default<-function(x,y,confidence=0.999,maxRuns=100,light=TRUE,doTrace=0,.
 	##rfCaller expands the information system with newly built random attributes.
 	rfCaller<-function(){
 		#Depending on wheather we use light or force version of Boruta, we remove Rejected attributes
-		if(light) xrand<-x[,decReg!="Rejected"] else xrand<-x;
+		if(light) xrand<-x[,decReg!="Rejected",drop=F] else xrand<-x;
 		#Thre must be at least 5 random attributes.
 		while(dim(xrand)[2]<5) xrand<-cbind(xrand,xrand);
 		#Now, we permute values in each attribute
@@ -85,23 +85,17 @@ Boruta.default<-function(x,y,confidence=0.999,maxRuns=100,light=TRUE,doTrace=0,.
 	
 	##Main loop
 	#Initial rounds
-	if(doTrace>0) cat('Initial round 1: ');
-	replicate(roundRuns,rfCaller());
-	doTests(5,roundRuns);
-	hitReg[,]<-0;
-	
-	if(doTrace>0) cat('\nInitial round 2: ');
-	replicate(roundRuns,rfCaller());
-	doTests(3,roundRuns);
-	hitReg[,]<-0;
-	
-	if(doTrace>0) cat('\nInitial round 3: ');
-	replicate(roundRuns,rfCaller());
-	doTests(2,roundRuns);
-	hitReg[,]<-0;
+	roundLevels<-c(5,3,2);
+	for(round in 1:3) if(any(decReg!="Rejected")){
+	 if(doTrace>0) cat(sprintf('Initial round %d: ',round));
+	 replicate(roundRuns,rfCaller());
+	 doTests(roundLevels[round],roundRuns);
+	 hitReg[,]<-0;
+	 if(doTrace>0) cat('\n');
+	}
 	
 	#Final round
-	if(doTrace>0) cat('\nFinal round: ');
+	if(doTrace>0) cat('Final round: ');
 	runInFinalRound<-0;
 	while(any(decReg=="Tentative") & runInFinalRound<maxRuns){
 		rfCaller(); runInFinalRound+1->runInFinalRound;
@@ -141,17 +135,17 @@ print.Boruta<-function(x,...){
 	if(class(x)!='Boruta') stop("This is NOT a Boruta object!")
 	cat(paste('Boruta performed ',dim(x$ZScoreHistory)[1],' randomForest runs in ',format(x$timeTaken),'.\n',sep=''));
 	if(x$roughfixed) cat(paste('Tentatives roughfixed over ',x$averageOver,' last randomForest runs.\n',sep=''));
-	if(sum(x$finalDecision=='Confirmed')==0) {
+	if(sum(x$finalDecision=='Confirmed')==0){
 		cat('        No attributes has been deemed important\n')} else {
 		writeLines(strwrap(paste(sum(x$finalDecision=='Confirmed'),' attributes confirmed important: ',
 		 paste(sep='',collapse=' ',names(x$finalDecision[x$finalDecision=='Confirmed']))),indent=8));
 	}
-	if(sum(x$finalDecision=='Rejected')==0) {
+	if(sum(x$finalDecision=='Rejected')==0){
 		cat('        No attributes has been deemed unimportant\n')} else {
 		writeLines(strwrap(paste(sum(x$finalDecision=='Rejected'),' attributes confirmed unimportant: ',
 		 paste(sep='',collapse=' ',names(x$finalDecision[x$finalDecision=='Rejected']))),indent=8));
 	}
-	if(sum(x$finalDecision=='Tentative')!=0) {
+	if(sum(x$finalDecision=='Tentative')!=0){
 		writeLines(strwrap(paste(sum(x$finalDecision=='Tentative'),' tentative attributes left: ',
 		 paste(sep='',collapse=' ',names(x$finalDecision[x$finalDecision=='Tentative']))),indent=8));
 	}		
