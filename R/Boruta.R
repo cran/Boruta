@@ -7,8 +7,23 @@ Boruta<-function(x,...){
 	UseMethod("Boruta");
 }
 
+##Adapter of RandomForest importance
+getImpRf<-function(x,y,...){
+	randomForest(x,y,importance=TRUE,keep.forest=FALSE,...)->rf;
+	importance(rf,1,scale=TRUE)[,1]; 
+}
+
+attr(getImpRf,"toLoad")<-'randomForest';
+comment(getImpRf)<-'randomForest Z-score';
+
 ##Boruta.default implements actual Boruta algorithm
-Boruta.default<-function(x,y,confidence=0.999,maxRuns=100,light=TRUE,doTrace=0,...){
+Boruta.default<-function(x,y,confidence=0.999,maxRuns=100,light=TRUE,doTrace=0,getImp=getImpRf,...){
+	if(!is.null(attr(getImp,"toLoad"))){
+		#Load packages required by getImp
+		if(!all(sapply(attr(getImp,"toLoad"),require,character.only=TRUE))){
+			stop('Unable to load all packages required by given getImp.');
+		}
+	}
 	timeStart<-Sys.time();
 	require(randomForest);
 	cl<-match.call();
@@ -33,9 +48,8 @@ Boruta.default<-function(x,y,confidence=0.999,maxRuns=100,light=TRUE,doTrace=0,.
 		data.frame(lapply(xrand,sample))->xrand;
 		names(xrand)<-paste('rand',1:nRandA,sep="");
 		if(doTrace>0) cat('.');
-		#Calling randomForest. "..." can be used by the user to pass rf attributes (feg. ntrees)
-		randomForest(cbind(x[,decReg!="Rejected"],xrand),y,importance=TRUE,keep.forest=FALSE,...)->rf;
-		impRaw<-importance(rf,1,scale=TRUE)[,1]; 
+		#Calling importance source. "..." can be used by the user to pass rf attributes (feg. ntrees)
+		impRaw<-getImp(cbind(x[,decReg!="Rejected"],xrand),y,...);
 		#Importance must have Rejected attributes put on place and filled with -Infs
 		imp<-rep(-Inf,nAtt+nRandA);names(imp)<-c(attNames,names(xrand));
 		impRaw->imp[c(decReg!="Rejected",rep(TRUE,nRandA))];
@@ -108,7 +122,8 @@ Boruta.default<-function(x,y,confidence=0.999,maxRuns=100,light=TRUE,doTrace=0,.
 	names(decReg)<-attNames;
 	ans<-list(finalDecision=decReg,ZScoreHistory=ZHistory,
 			confidence=confidence,maxRuns=maxRuns,light=light,roundRuns=roundRuns,
-			timeTaken=Sys.time()-timeStart,roughfixed=FALSE,call=cl);
+			timeTaken=Sys.time()-timeStart,roughfixed=FALSE,call=cl,impSource=comment(getImp));
+			
 	"Boruta"->class(ans);
 	return(ans);
 }
@@ -131,6 +146,7 @@ Boruta.formula<-function(formula,data=.GlobalEnv,...){
 }
 
 ##print.Boruta prints the Boruta object in convenient, shortened form
+#TODO: Print should react about alternative importance!
 print.Boruta<-function(x,...){
 	if(class(x)!='Boruta') stop("This is NOT a Boruta object!")
 	cat(paste('Boruta performed ',dim(x$ZScoreHistory)[1],' randomForest runs in ',format(x$timeTaken),'.\n',sep=''));

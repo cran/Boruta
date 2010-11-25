@@ -1,9 +1,9 @@
 \name{Boruta plot}
 \alias{plot.Boruta}
  
-\title{Plotting boxplots of ZScores}
+\title{Plotting boxplots of importance}
 \description{
-  \code{plot.Boruta} visualises ZScoreHistory. Each attribute (including randomised meta-attributes, \code{randMax},
+  \code{plot.Boruta} visualises \code{ZScoreHistory} element of the \code{Boruta} object. Each attribute (including randomised meta-attributes, \code{randMax},
   \code{randMean}, \code{randMin}) is represented as a boxplot. Its colour corresponds to a Boruta decision; see \code{colCode}
   argument note. Boxplots are ordered due to their median ZScore.  
 }
@@ -11,7 +11,7 @@
 \usage{
 \method{plot}{Boruta}(x,colCode=c('green','yellow','red','blue'),sort=TRUE,
 		whichRand=c(TRUE,TRUE,TRUE),col=NULL,
-		xlab='Attributes',ylab='Z-Scores',...)
+		xlab='Attributes',ylab='Importance',...)
 }
 
 \arguments{

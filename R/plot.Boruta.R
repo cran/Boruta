@@ -19,7 +19,7 @@ generateCol<-function(x,colCode,col,numRand){
 
 ##plot.Boruta draws ZScores obtained during process as boxplots and final decision as their colours.
 plot.Boruta<-function(x,colCode=c('green','yellow','red','blue'),sort=TRUE,whichRand=c(TRUE,TRUE,TRUE),
-		col=NULL,xlab='Attributes',ylab='Z-Scores',...){
+		col=NULL,xlab='Attributes',ylab='Importance',...){
 	#Checking arguments
 	if(class(x)!='Boruta') stop('This function needs Boruta object as an argument.');
 	#Removal of -Infs and conversion to a list
@@ -38,7 +38,7 @@ plot.Boruta<-function(x,colCode=c('green','yellow','red','blue'),sort=TRUE,which
 
 ##plotZHistory draws ZScores obtained during process as lines and final decision as their colours.
 plotZHistory<-function(x,colCode=c('green','yellow','red','blue'),showRounds=TRUE,col=NULL,type="l",lty=1,pch=0,
-		xlab='Random Forest run',ylab='Z-Scores',...){
+		xlab='Random Forest run',ylab='Importance',...){
 	#Checking arguments
 	if(class(x)!='Boruta') stop('This function needs Boruta object as an argument.');
 	col<-generateCol(x,colCode,col,3)

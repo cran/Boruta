@@ -1,0 +1,14 @@
+f03f3696226a52d36cd1eb889254acc7 *DESCRIPTION
+a99f0119c00eff981bc05af33c25acbb *NAMESPACE
+26de57f0965b3a129d2a157d1c291272 *R/Boruta.R
+8e42fb06c3e71d68572a77b1f077c9be *R/TentativeRoughFix.R
+f5a00b6bec4bcd44a5b79ee9aa2a3fa2 *R/getFormulas.R
+3b9518e4c7f6024fef47a9ed98d2e82a *R/plot.Boruta.R
+f259556a9dfa70be825b4296c7da150a *inst/CITATION
+0508199f5710c028424aeb8322fc2a6b *inst/NEWS
+a0afecd35280bc5098103d9633375fda *man/Boruta.Rd
+92641e6b32fd69997489f480b5f0d88b *man/TentativeRoughFix.Rd
+20f503248dd1ae15b0bd8f8fb3dedd53 *man/attStats.Rd
+3b654c0b63f421fd48c002f95a30d2ec *man/getFormulas.Rd
+48586af776ff6edf4eb1f5bcfe8ac884 *man/plot.Boruta.Rd
+06b8ea11d60c3aaa15931ac0b14f7da7 *man/plotZHistory.Rd

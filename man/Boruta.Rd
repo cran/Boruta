@@ -12,7 +12,7 @@
 } 
 \usage{
 \method{Boruta}{formula}(formula,data=.GlobalEnv,...)
-\method{Boruta}{default}(x,y,confidence=0.999,maxRuns=100,light=TRUE,doTrace=0,...)
+\method{Boruta}{default}(x,y,confidence=0.999,maxRuns=100,light=TRUE,doTrace=0,getImp=getImpRf,...)
 \method{print}{Boruta}(x,...)
 }
 \arguments{
@@ -23,9 +23,10 @@
   \item{maxRuns}{maximal number of randomForest runs in the final round. You may increase it to resolve attributes left \code{Tentative}. }
   \item{doTrace}{0 means no tracing, 1 means printing a "." sign after each randomForest run, 
   					2 means same as 1, plus consecutive reporting of test results.}
+  \item{getImp}{Function used to obtain attribute importance. The default is \code{getImpRf}, which runs randomForest and gathers Z-scores of mean decrease accuracy measure.}
   \item{light}{if set to \code{TRUE}, Boruta runs in standard, light mode. If set to \code{FALSE},
   Boruta runs in more restrictive, force mode.}
-  \item{...}{additional parameters that will be passed to \code{randomForest} function.}
+  \item{...}{additional parameters that will be passed to \code{getImp} function.}
 }
 
 
@@ -38,6 +39,7 @@
    Beside predictors' ZScores contains maximal, mean and minimal ZScore of shadow attributes in each run. Rejected
    attributes have \code{-Inf} ZScore assumed.}
   \item{timeTaken}{time taken by the computation.}
+  \item{impSource}{string describing the source of importance, equal to a comment attribute of the \code{getImp} argument.}
   \item{call}{the original call of the \code{Boruta} function.}
 }
 
@@ -55,6 +57,11 @@
   Instead, you can use \code{\link{TentativeRoughFix}} function, which will perform other, weaker test to make a final
   decision, or simply treat them as undecided in further analysis.
   }
+  
+\note{
+ Boruta was originally based on a Z-score of \code{randomForest}'s mean decrease of accuracy score. 
+ While the current version of the package allows one to use arbitrary importance source using the \code{getImp} argument, the documentation and function/element naming still follow the original implementation because of the compatibility issues.
+}
 
 \examples{
 set.seed(777);
@@ -65,6 +72,21 @@ names(iris.extended)[6:9]<-paste("Nonsense",1:4,sep="");
 Boruta(Species~.,data=iris.extended,doTrace=2)->Boruta.iris.extended
 #Nonsense attributes should be rejected
 print(Boruta.iris.extended);
+
+\dontrun{
+#Boruta using rFerns' importance (rFerns package must be installed!)
+#Definition of ferns' importance adapter
+getImpFerns<-function(x,y,...){
+ f<-rFerns(x,y,saveForest=FALSE,importance=TRUE,...);
+ f$importance[,1]
+}
+#Those are optional
+attr(getImpFerns,"toLoad")<-"rFerns";
+comment(getImpFerns)<-"rFerns importance"
+#Running altered Boruta on the Iris data
+Boruta(Species~.,data=iris.extended,getImp=getImpFerns)->Boruta.ferns.irisE
+print(Boruta.ferns.irisE);
+}
 
 \dontrun{
 #Boruta on the Ozone data from mlbench 
