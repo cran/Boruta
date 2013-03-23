@@ -1,39 +1,51 @@
-\name{Boruta plot}
+\name{plot.Boruta}
 \alias{plot.Boruta}
- 
-\title{Plotting boxplots of importance}
-\description{
-  \code{plot.Boruta} visualises \code{ZScoreHistory} element of the \code{Boruta} object. Each attribute (including randomised meta-attributes, \code{randMax},
-  \code{randMean}, \code{randMin}) is represented as a boxplot. Its colour corresponds to a Boruta decision; see \code{colCode}
-  argument note. Boxplots are ordered due to their median ZScore.  
-}
-
+\title{Plot Boruta object}
 \usage{
-\method{plot}{Boruta}(x,colCode=c('green','yellow','red','blue'),sort=TRUE,
-		whichRand=c(TRUE,TRUE,TRUE),col=NULL,
-		xlab='Attributes',ylab='Importance',...)
+  \method{plot}{Boruta} (x,
+    colCode = c("green", "yellow", "red", "blue"),
+    sort = TRUE, whichShadow = c(TRUE, TRUE, TRUE),
+    col = NULL, xlab = "Attributes", ylab = "Importance",
+    ...)
 }
-
 \arguments{
- \item{x}{an object of class \code{Boruta}.}
- \item{colCode}{a vector containing colour codes for attribute decisions, respectively \code{Confirmed}, \code{Tentative},
- 				\code{Rejected}, \code{Random}.}
- \item{sort}{controls weather boxplots should be ordered, or left in original order.}
- \item{whichRand}{a vector controlling which randomised meta-attributes should be drawn; respectively 
- 				\code{randMax}, \code{randMean}, \code{randMin}.}
- \item{col}{standard \code{col} attribute. If given, suppresses \code{colCode}.}  
- \item{xlab,ylab,...}{additional graphical parameters that will be passed to \code{boxplot}.}
-}
+  \item{x}{an object of a class Boruta.}
 
+  \item{colCode}{a vector containing colour codes for
+  attribute decisions, respectively Confirmed, Tentative,
+  Rejected and shadow.}
+
+  \item{sort}{controls weather boxplots should be ordered,
+  or left in original order.}
+
+  \item{whichShadow}{a logical vector controlling which
+  shadows should be drawn; switches respectively max
+  shadow, mean shadow and min shadow.}
+
+  \item{col}{standard \code{col} attribute. If given,
+  suppresses effects of \code{colCode}.}
+
+  \item{xlab}{X axis label that will be passed to
+  \code{\link{boxplot}}.}
+
+  \item{ylab}{Y axis label that will be passed to
+  \code{\link{boxplot}}.}
+
+  \item{...}{additional graphical parameter that will be
+  passed to \code{\link{boxplot}}.}
+}
 \value{
-  None.
+  Invisible copy of \code{x}.
 }
-
+\description{
+  default plot method for Boruta objects, showing boxplots
+  of attribute importances over run.
+}
 \note{
-If \code{col} is given and \code{sort} is \code{TRUE}, the \code{col} will be permuted, so that its order corresponds to 
-attribute order in \code{ZScoreHistory}. 
+  If \code{col} is given and \code{sort} is \code{TRUE},
+  the \code{col} will be permuted, so that its order
+  corresponds to attribute order in \code{ImpHistory}.
 }
-
 \examples{
 \dontrun{
 library(mlbench); data(HouseVotes84);
@@ -42,10 +54,9 @@ na.omit(HouseVotes84)->hvo;
 Boruta(Class~.,data=hvo,doTrace=2)->Bor.hvo;
 print(Bor.hvo);
 plot(Bor.hvo);
-
 }
 }
+\author{
+  Miron B. Kursa
+}
 
-\author{Miron B. Kursa}
-
-\keyword{hplot}

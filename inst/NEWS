@@ -1,37 +1,40 @@
-Changes in 1.6:
-	- Allowed to replace randomForest with other importance source.
-	- Documentation updates.
-
+Changes in 2.0:
+        - Allowed to replace randomForest with other importance source.
+        - Changes in output; "rand" attributes are now called
+        "shadow" ones.
+        - ZScoreHistory is now ImpHistory; some scripts and old Boruta
+        objects may become incompatible.
+        - Documentation updates.
 
 Changes in 1.5:
-	- Improved performance of dealing with huge inputs.
-	- Removed redundant decisionHistory from output.
+        - Improved performance of dealing with huge inputs.
+        - Removed redundant decisionHistory from output.
 
 
 Changes in 1.4:
-	- Fixed manual entry suggesting that Boruta can only work 
-	for classification problems. (Thanks to Allan Engelhardt 
-	for spotting this)
-	- Fixed an error occuring when all attributes are claimed 
-	Rejected during one of the initial rounds. (Thanks to
-	Allan Engelhardt for spotting this)
+        - Fixed manual entry suggesting that Boruta can only work
+        for classification problems. (Thanks to Allan Engelhardt
+        for spotting this)
+        - Fixed an error occuring when all attributes are claimed
+        Rejected during one of the initial rounds. (Thanks to
+        Allan Engelhardt for spotting this)
 
 
 Changes in 1.3:
-	- Fixes to the output. (Thanks to Achim Zeileis for 
-	suggesting them)
+        - Fixes to the output. (Thanks to Achim Zeileis for
+        suggesting them)
 
 
 Changes in 1.2:
-	- New plotting function plotZHistory.
-	- Changes in manual.
+        - New plotting function plotZHistory.
+        - Changes in manual.
 
 
 Changes in 1.1:
-	- Fixed a bug making get*Formula functions throw error
-	when Boruta was run with formula provided as a variable. 
-	- Fixed minor documentation inconsistency.
+        - Fixed a bug making get*Formula functions throw error
+        when Boruta was run with formula provided as a variable.
+        - Fixed minor documentation inconsistency.
 
 
 Changes in 1.0:
-	- First public release.
+        - First public release.

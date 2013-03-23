@@ -3,34 +3,65 @@
 # Author: Miron B. Kursa
 ###############################################################################
 
-##TentativeRoughFix provides an approximate test to resolve Tentatives 
+
+##' @name TentativeRoughFix
+##' @title Rough fix of Tentative attributes
+##' @description In some circumstances (too short Boruta run,
+##' unfortunate mixing of shadow attributes, tricky dataset\ldots), Boruta
+##' can leave some attributes Tentative. TentativeRoughFix performs a
+##' simplified, weaker test for judging such
+##' attributes.
+##' @param x an object of a class Boruta.
+##' @param averageOver Either number of last importance source runs to
+##' average over, \code{'finalRound'} for averaging over last (final) round or
+## \code{'allRounds'} for averaging over whole Boruta run.
+##' @return A Boruta class object with modified \code{finalDecision} element.
+##' Such object has few additional elements:
+##' \item{originalDecision}{Original \code{finalDecision}.}
+##' \item{averageOver}{Copy of \code{averageOver} parameter.}
+##' @details Function claims as Confirmed those attributes that
+##' have median importance higher than the median importance of
+##' maximal shadow attribute, and the rest as Rejected.
+##' Depending of the user choice, medians for the test
+##' are count over last round, all rounds or N last
+##' importance source runs.
+##' @note This function should be used only when strict decision is
+##' highly desired, because this test is much weaker than Boruta
+##' and can lower the confidence of the final result.
+##' @author Miron B. Kursa
+##' @export TentativeRoughFix
 TentativeRoughFix<-function(x,averageOver='finalRound'){
-	if(class(x)!='Boruta') stop('This function needs Boruta object as an argument.');
-	
-	tentIdx<-which(x$finalDecision=='Tentative');
-	if(length(tentIdx)==0) {
-		warning('There are no Tentative attributes! Returning original object.');
-		return(x);
-	}
-	
-	nRuns<-dim(x$ZScoreHistory)[1];
-	if(!is.numeric(averageOver)){
-		if(averageOver=='finalRound') {averageOver<-nRuns-3*x$roundRuns} else {
-		if(averageOver=='allRounds') {averageOver<-nRuns} else {
-			averageOver<-1;	
-		}}	
-	}
-	
-	if(averageOver<1) stop('Bad averageOver argument!');
-	if(averageOver>nRuns) stop('averageOver exceeds number of runs!');
-	
-	sapply(x$ZScoreHistory[(nRuns-averageOver+1):nRuns,tentIdx],median)>median(x$ZScore[(nRuns-averageOver+1):nRuns,'randMax'])->dd;
-	ans<-x;
-	ans$roughfixed=TRUE;
-	ans$averageOver=averageOver;
-	ans$originalDecision<-x$finalDecision;
-	ans$finalDecision[tentIdx[dd]]<-'Confirmed';
-	ans$finalDecision[tentIdx[!dd]]<-'Rejected';
-	
-	return(ans);
+        if(class(x)!='Boruta')
+                stop('This function needs Boruta object as an argument.');
+
+        tentIdx<-which(x$finalDecision=='Tentative');
+        if(length(tentIdx)==0){
+                warning('There are no Tentative attributes! Returning original object.');
+                return(x);
+        }
+
+        nRuns<-dim(x$ImpHistory)[1];
+        if(!is.numeric(averageOver)){
+                averageOver<-if(averageOver=='finalRound'){
+                        nRuns-3*x$roundRuns
+                }else{
+                        if(averageOver=='allRounds') nRuns else 0
+                }
+        }
+
+        if(averageOver<1)
+                stop('Bad averageOver argument!');
+        if(averageOver>nRuns)
+                stop('averageOver exceeds number of runs!');
+
+        sapply(x$ImpHistory[(nRuns-averageOver+1):nRuns,tentIdx],median)>median(x$ZScore[(nRuns-averageOver+1):nRuns,'shadowMax'])->dd;
+        ans<-x;
+        ans$roughfixed=TRUE;
+        ans$averageOver=averageOver;
+        ans$originalDecision<-x$finalDecision;
+        ans$finalDecision[tentIdx[dd]]<-'Confirmed';
+        ans$finalDecision[tentIdx[!dd]]<-'Rejected';
+
+        return(ans);
 }
+
