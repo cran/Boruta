@@ -348,7 +348,7 @@ attStats<-function(x){
 getSelectedAttributes<-function(x,withTentative=FALSE){
         if(class(x)!='Boruta') stop('This function needs Boruta object as an argument.');
         names(x$finalDecision)[
-                x$finalDecision%in%(if(withTentative) "Confirmed" else c("Confirmed","Tentative"))
+                x$finalDecision%in%(if(!withTentative) "Confirmed" else c("Confirmed","Tentative"))
         ]
 }
 

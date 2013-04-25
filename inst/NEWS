@@ -1,3 +1,8 @@
+Changes in 2.1:
+       - Fixed attStats() bug making withTentative argument behave
+       opposite to what it should do. (Thanks to Jitao David Zhang
+       for spotting this)
+
 Changes in 2.0:
         - Allowed to replace randomForest with other importance source.
         - Changes in output; "rand" attributes are now called
@@ -5,6 +10,7 @@ Changes in 2.0:
         - ZScoreHistory is now ImpHistory; some scripts and old Boruta
         objects may become incompatible.
         - Documentation updates.
+
 
 Changes in 1.5:
         - Improved performance of dealing with huge inputs.

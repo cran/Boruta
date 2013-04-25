@@ -1,10 +1,10 @@
-2387368fb915292156195cb4b4edbcea *DESCRIPTION
+52c84eb1fbfe4ddcf3bbb94d68d09afc *DESCRIPTION
 b57b369162171152e1afecb00202ae8a *NAMESPACE
-a9255aa1672b1a50e6f003923af177a5 *R/Boruta.R
+9ef017d8de04fce30ebb20a7bfaa2d36 *R/Boruta.R
 0335444d9189d107f21efef6c71ffcb6 *R/TentativeRoughFix.R
 62047a0cfed576e7d5b436087ff7aad1 *R/plot.Boruta.R
 f259556a9dfa70be825b4296c7da150a *inst/CITATION
-2cd5d7168b366ed2c0d1af93bbe06c2e *inst/NEWS
+3bb937b820a730460874634622250d58 *inst/NEWS
 7af4e2cfe2ae4aefc9b67d48751f7866 *man/Boruta.Rd
 b40145d7c8e5c6479774fce62460eb8e *man/TentativeRoughFix.Rd
 0ee0fff8b9ed46482f65c275b9f785fe *man/attStats.Rd
