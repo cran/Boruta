@@ -21,8 +21,8 @@
   In some circumstances (too short Boruta run, unfortunate
   mixing of shadow attributes, tricky dataset\ldots),
   Boruta can leave some attributes Tentative.
-  TentativeRoughFix performs a simplified, weaker test for
-  judging such attributes.
+  \code{TentativeRoughFix} performs a simplified, weaker
+  test for judging such attributes.
 }
 \details{
   Function claims as Confirmed those attributes that have

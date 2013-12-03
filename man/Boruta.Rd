@@ -6,9 +6,9 @@
 \usage{
   Boruta(x, ...)
 
-  \method{Boruta}{default} (x, y, confidence = 0.999,
-    maxRuns = 100, light = TRUE, doTrace = 0,
-    getImp = getImpRf, ...)
+  \method{Boruta}{default} (x, y, pValue = 0.01,
+    mcAdj = TRUE, maxRuns = 100, doTrace = 0,
+    getImp = getImpRfZ, ...)
 
   \method{Boruta}{formula} (formula, data = .GlobalEnv,
     ...)
@@ -20,30 +20,30 @@
   numeric vector for regression.}
 
   \item{getImp}{function used to obtain attribute
-  importance. The default is getImpRf, which runs random
+  importance. The default is getImpRfZ, which runs random
   forest from \code{randomForest} package and gathers
   Z-scores of mean decrease accuracy measure.}
 
-  \item{confidence}{confidence level. Default value should
-  be used. Lower value may reduce computation time of test
-  runs.}
+  \item{pValue}{confidence level. Default value should be
+  used.}
 
-  \item{maxRuns}{maximal number of randomForest runs in the
-  final round. You may increase it to resolve attributes
-  left Tentative.}
+  \item{mcAdj}{if set to \code{TRUE}, a multiple
+  comparisons adjustment using the Bonferroni method will
+  be applied. Default value should be used; older (1.x and
+  2.x) versions of Boruta were effectively using
+  \code{FALSE}.}
+
+  \item{maxRuns}{maximal number of importance source runs
+  in the final round. You may increase it to resolve
+  attributes left Tentative.}
 
   \item{doTrace}{verbosity level. 0 means no tracing, 1
   means printing a "." sign after each importance source
   run, 2 means same as 1, plus consecutive reporting of
   test results.}
 
-  \item{light}{if set to \code{TRUE}, Boruta runs in
-  standard mode, in which attributes claimed Rejected are
-  removed with their shadows; if set to \code{FALSE},
-  Boruta runs in `forced' mode, in which all shadows are
-  present during the whole run.}
-
-  \item{...}{additional parameters passed to getImp.}
+  \item{...}{additional parameters passed to
+  \code{getImp}.}
 
   \item{formula}{alternatively, formula describing model to
   be analysed.}
@@ -80,18 +80,15 @@
   significantly worst importance than shadow ones are being
   consecutively dropped. On the other hand, attributes that
   are significantly better than shadows are admitted to be
-  Confirmed. If algorithm is run in default light mode,
-  unimportant attributes are being dropped along with their
-  random shadows, while in the forced mode all shadow
-  attributes are preserved during the whole Boruta run.
+  Confirmed. Shadows are re-created in each iteration.
   Algorithm stops when only Confirmed attributes are left,
   or when it reaches \code{maxRuns} importance source runs
   in the last round. If the second scenario occurs, some
   attributes may be left without a decision. They are
   claimed Tentative. You may try to extend \code{maxRuns}
-  or lower \code{confidence} to clarify them, but in some
-  cases their importances do fluctuate too much for Boruta
-  to converge. Instead, you can use
+  or lower \code{pValue} to clarify them, but in some cases
+  their importances do fluctuate too much for Boruta to
+  converge. Instead, you can use
   \code{\link{TentativeRoughFix}} function, which will
   perform other, weaker test to make a final decision, or
   simply treat them as undecided in further analysis.
@@ -103,10 +100,6 @@
   this kind should boil down to change of
   \code{ZScoreHistory} to \code{ImpHistory} in script
   source or Boruta object structure.
-
-  In normal use, \code{light} should be set to \code{TRUE};
-  force mode is experimental and has not been well tested
-  yet.
 }
 \examples{
 set.seed(777);
@@ -117,16 +110,7 @@ names(iris.extended)[6:9]<-paste("Nonsense",1:4,sep="");
 Boruta(Species~.,data=iris.extended,doTrace=2)->Boruta.iris.extended
 #Nonsense attributes should be rejected
 print(Boruta.iris.extended);
-#Boruta using rFerns' importance (rFerns package must be installed!)
-#Definition of ferns' importance adapter
-getImpFerns<-function(x,y,...){
-f<-rFerns(x,y,saveForest=FALSE,importance=TRUE,...);
-f$importance[,1]
-}
-#Those are optional
-attr(getImpFerns,"toLoad")<-"rFerns";
-comment(getImpFerns)<-"rFerns importance"
-#Running altered Boruta on the Iris data
+#Boruta using rFerns' importance
 Boruta(Species~.,data=iris.extended,getImp=getImpFerns)->Boruta.ferns.irisE
 print(Boruta.ferns.irisE);
 \dontrun{
@@ -138,7 +122,7 @@ Boruta(V4~.,data=ozo,doTrace=2)->Bor.ozo;
 cat('Random forest run on all attributes:\\n');
 print(randomForest(V4~.,data=ozo));
 cat('Random forest run only on confirmed attributes:\\n');
-print(randomForest(getConfirmedFormula(Bor.ozo),data=ozo));
+print(randomForest(ozo[,getSelectedAttributes(Bor.ozo)],ozo$V4));
 }
 \dontrun{
 #Boruta on the HouseVotes84 data from mlbench

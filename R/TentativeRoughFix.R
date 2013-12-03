@@ -8,7 +8,7 @@
 ##' @title Rough fix of Tentative attributes
 ##' @description In some circumstances (too short Boruta run,
 ##' unfortunate mixing of shadow attributes, tricky dataset\ldots), Boruta
-##' can leave some attributes Tentative. TentativeRoughFix performs a
+##' can leave some attributes Tentative. \code{TentativeRoughFix} performs a
 ##' simplified, weaker test for judging such
 ##' attributes.
 ##' @param x an object of a class Boruta.
@@ -31,37 +31,40 @@
 ##' @author Miron B. Kursa
 ##' @export TentativeRoughFix
 TentativeRoughFix<-function(x,averageOver='finalRound'){
-        if(class(x)!='Boruta')
-                stop('This function needs Boruta object as an argument.');
+ if(class(x)!='Boruta')
+  stop('This function needs Boruta object as an argument.');
 
-        tentIdx<-which(x$finalDecision=='Tentative');
-        if(length(tentIdx)==0){
-                warning('There are no Tentative attributes! Returning original object.');
-                return(x);
-        }
+ tentIdx<-which(x$finalDecision=='Tentative');
+ if(length(tentIdx)==0){
+  warning('There are no Tentative attributes! Returning original object.');
+  return(x);
+ }
 
-        nRuns<-dim(x$ImpHistory)[1];
-        if(!is.numeric(averageOver)){
-                averageOver<-if(averageOver=='finalRound'){
-                        nRuns-3*x$roundRuns
-                }else{
-                        if(averageOver=='allRounds') nRuns else 0
-                }
-        }
+ nRuns<-dim(x$ImpHistory)[1];
+ if(!is.numeric(averageOver)){
+  averageOver<-if(averageOver=='finalRound'){
+   nRuns-3*x$roundRuns
+  }else{
+   if(averageOver=='allRounds') nRuns else 0
+  }
+ }
 
-        if(averageOver<1)
-                stop('Bad averageOver argument!');
-        if(averageOver>nRuns)
-                stop('averageOver exceeds number of runs!');
+ if(averageOver<1)
+  stop('Bad averageOver argument!');
+ if(averageOver>nRuns)
+  stop('averageOver exceeds number of runs!');
 
-        sapply(x$ImpHistory[(nRuns-averageOver+1):nRuns,tentIdx],median)>median(x$ZScore[(nRuns-averageOver+1):nRuns,'shadowMax'])->dd;
-        ans<-x;
-        ans$roughfixed=TRUE;
-        ans$averageOver=averageOver;
-        ans$originalDecision<-x$finalDecision;
-        ans$finalDecision[tentIdx[dd]]<-'Confirmed';
-        ans$finalDecision[tentIdx[!dd]]<-'Rejected';
+ impHistorySubset<-x$ImpHistory[(nRuns-averageOver+1):nRuns,];
+ medianTentImp<-sapply(impHistorySubset[,tentIdx],median);
+ medianShaMaxImp<-median(impHistorySubset[,'shadowMax']);
+ medianTentImp>medianShaMaxImp->toOrdain;
 
-        return(ans);
+ ans<-x;
+ ans$roughfixed<-TRUE;
+ ans$averageOver<-averageOver;
+ ans$originalDecision<-x$finalDecision;
+ ans$finalDecision[tentIdx[toOrdain]]<-'Confirmed';
+ ans$finalDecision[tentIdx[!toOrdain]]<-'Rejected';
+
+ return(ans);
 }
-

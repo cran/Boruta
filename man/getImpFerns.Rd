@@ -1,0 +1,29 @@
+\name{getImpFerns}
+\alias{getImpFerns}
+\title{Random Ferns importance}
+\usage{
+  getImpFerns(x, y, ...)
+}
+\arguments{
+  \item{x}{data frame of predictors including shadows.}
+
+  \item{y}{response vector.}
+
+  \item{...}{parameters passed to the underlying
+  \code{\link{rFerns}} call; they are relayed from
+  \code{...} of \code{\link{Boruta}}.}
+}
+\description{
+  This function is intended to be given to a \code{getImp}
+  argument of \code{\link{Boruta}} function to be called by
+  the Boruta algorithm as an importance source.
+}
+\note{
+  Random Ferns importance calculation should be much faster
+  than using Random Forest; however, one must first
+  optimize the value of the \code{depth} parameter and it
+  is quite likely that the number of ferns in the ensemble
+  required for the importance to converge will be higher
+  than the number of trees in case of Random Forest.
+}
+

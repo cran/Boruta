@@ -18,11 +18,13 @@
   Extract names of the selected attributes
 }
 \examples{
+\dontrun{
 data(iris);
 #Takes some time, so be patient
 Boruta(Species~.,data=iris,doTrace=2)->Bor.iris;
 print(Bor.iris);
 print(getSelectedAttributes(Bor.iris));
+}
 }
 \author{
   Miron B. Kursa

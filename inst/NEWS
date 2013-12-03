@@ -1,7 +1,20 @@
+Changes in 3.0:
+       - More importance adapters defined.
+       - Fixed TentativeRoughFix() bug making this function always return
+       the original Boruta object without any modification.
+       - Built-in multiple-comparisons correction, which breaks
+       compatibility with older version of Boruta.
+       Use pValue=0.001 and mcAdj=FALSE to trigger the legacy behaviour.
+       - Experimental, "forced" mode of Boruta dropped. It is equivalent
+       to fixing light argument of Boruta function to TRUE, its
+       previously default value.
+
+
 Changes in 2.1:
        - Fixed attStats() bug making withTentative argument behave
        opposite to what it should do. (Thanks to Jitao David Zhang
        for spotting this)
+
 
 Changes in 2.0:
         - Allowed to replace randomForest with other importance source.
@@ -21,7 +34,7 @@ Changes in 1.4:
         - Fixed manual entry suggesting that Boruta can only work
         for classification problems. (Thanks to Allan Engelhardt
         for spotting this)
-        - Fixed an error occuring when all attributes are claimed
+        - Fixed an error occurring when all attributes are claimed
         Rejected during one of the initial rounds. (Thanks to
         Allan Engelhardt for spotting this)
 
