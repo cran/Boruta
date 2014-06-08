@@ -45,7 +45,7 @@ generateCol<-function(x,colCode,col,numShadow){
 ##' plot(Bor.hvo);
 ##' }
 ##' @author Miron B. Kursa
-##' @S3method plot Boruta
+##' @export
 plot.Boruta<-function(x,colCode=c('green','yellow','red','blue'),sort=TRUE,whichShadow=c(TRUE,TRUE,TRUE),
   col=NULL,xlab='Attributes',ylab='Importance',...){
  #Checking arguments
@@ -98,7 +98,7 @@ plot.Boruta<-function(x,colCode=c('green','yellow','red','blue'),sort=TRUE,which
 ##' plotImpHistory(Bor.son);
 ##' }
 ##' @author Miron B. Kursa
-##' @export plotImpHistory
+##' @export
 plotImpHistory<-function(x,colCode=c('green','yellow','red','blue'),showRounds=TRUE,col=NULL,type="l",lty=1,pch=0,
   xlab='Classifier run',ylab='Importance',...){
  #Checking arguments

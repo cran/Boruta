@@ -1,3 +1,7 @@
+Changes in 3.1:
+       - Better status messages.
+
+
 Changes in 3.0:
        - More importance adapters defined.
        - Fixed TentativeRoughFix() bug making this function always return

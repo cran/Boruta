@@ -4,7 +4,7 @@
 
 ##' @name Boruta
 ##' @rdname Boruta
-##' @export Boruta
+##' @export
 Boruta<-function(x,...)
  UseMethod("Boruta");
 
@@ -17,7 +17,8 @@ Boruta<-function(x,...)
 ##' @param x data frame of predictors including shadows.
 ##' @param y response vector.
 ##' @param ... parameters passed to the underlying \code{\link{randomForest}} call; they are relayed from \code{...} of \code{\link{Boruta}}.
-##' @export getImpRfZ
+##' @import randomForest
+##' @export
 getImpRfZ<-function(x,y,...){
  randomForest(x,y,importance=TRUE,keep.forest=FALSE,...)->rf;
  importance(rf,1,scale=TRUE)[,1];
@@ -46,7 +47,8 @@ comment(getImpRfGini)<-'randomForest Gini index importance';
 ##' @param x data frame of predictors including shadows.
 ##' @param y response vector.
 ##' @param ... parameters passed to the underlying \code{\link{rFerns}} call; they are relayed from \code{...} of \code{\link{Boruta}}.
-##' @export getImpFerns
+##' @import rFerns
+##' @export
 ##' @note Random Ferns importance calculation should be much faster than using Random Forest; however, one must first optimize the value of the \code{depth} parameter and
 ##' it is quite likely that the number of ferns in the ensemble required for the importance to converge will be higher than the number of trees in case of Random Forest.
 getImpFerns<-function(x,y,...){
@@ -98,7 +100,7 @@ comment(getImpFerns)<-'rFerns importance'
 ##' \emph{Journal of Statistical Software, 36(11)}, p. 1-13.
 ##' URL: \url{http://www.jstatsoft.org/v36/i11/}
 ##' @author Miron B. Kursa, based on the idea & original code by Witold R. Rudnicki.
-##' @S3method Boruta default
+##' @export
 ##' @examples
 ##' set.seed(777);
 ##' #Add some nonsense attributes to iris dataset by shuffling original attributes
@@ -163,9 +165,10 @@ Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,getImp
  if(length(grep('^shadow',names(x)))>0)
   stop('Attributes with names starting from "shadow" are reserved for internal use. Please rename them.');
  if(any(c(is.na(x),is.na(y))))
-  stop('NAs in input are prohibited. Please remove them.');
+  stop('Cannot process NAs in input. Please remove them.');
  if(maxRuns<11)
   stop('maxRuns must be greater than 10.')
+ isRuns<-0;
 
  ##rfCaller expands the information system with newly built random attributes, calculates importance
  ## and updates hits register and ZHistory
@@ -180,7 +183,9 @@ Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,getImp
   names(xSha)<-paste('shadow',1:nSha,sep="");
 
   #Notifying user of our progress
-  if(doTrace>0) cat('.');
+  isRuns<<-isRuns+1;
+  if(doTrace==2)
+   message(sprintf(' %s. run of importance source...',isRuns));
 
   #Calling importance source; "..." can be used by the user to pass rf attributes (for instance ntree)
   impRaw<-getImp(cbind(x[,decReg!="Rejected"],xSha),y,...);
@@ -220,9 +225,12 @@ Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,getImp
 
   #Trace the result
   nAcc<-sum(toAccept);
+  if(doTrace>0 & nAcc>0)
+   message(sprintf("Confirmed %s attributes: %s",nAcc,.attListPrettyPrint(attNames[toAccept])));
+
   nRej<-sum(toReject);
-  if(doTrace==2 & nAcc>0) cat('\n',nAcc,' attributes confirmed after this test: ',attNames[toAccept],'\n')
-  if(doTrace==2 & nRej>0) cat('\n',nRej,' attributes rejected after this test: ',attNames[toReject],'\n')
+  if(doTrace>0 & nRej>0)
+   message(sprintf("Rejected %s attributes: %s",nRej,.attListPrettyPrint(attNames[toReject])));
  }
 
  ##Creating some useful constants
@@ -245,15 +253,14 @@ Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,getImp
  #Initial rounds
  roundLevels<-c(5,3,2);
  for(round in 1:3) if(any(decReg!="Rejected")){
-  if(doTrace>0) cat(sprintf('Initial round %d: ',round));
+  if(doTrace>0) message(sprintf('Initial round %d: ',round));
   replicate(roundRuns,rfCaller(roundLevels[round]));
   doTests(roundRuns,FALSE);
   hitReg<-0*hitReg;
-  if(doTrace>0) cat('\n');
  }
 
  #Final round
- if(doTrace>0) cat('Final round: ');
+ if(doTrace>0) message('Final round: ');
  runInFinalRound<-0;
  while(any(decReg=="Tentative") & runInFinalRound<maxRuns){
   rfCaller(1); runInFinalRound+1->runInFinalRound;
@@ -261,7 +268,6 @@ Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,getImp
  }
 
  ##Building result
- if(doTrace>0) cat('\n');
  ZHistory<-do.call(rbind,ZHistory);
  names(decReg)<-attNames;
  ans<-list(finalDecision=decReg,ImpHistory=ZHistory,
@@ -272,11 +278,18 @@ Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,getImp
  return(ans);
 }
 
+.attListPrettyPrint<-function(x,limit=5){
+ x<-sort(x);
+ if(length(x)<limit+1)
+  return(sprintf("%s.",paste(x,collapse=", ")));
+ sprintf("%s and %s more.",paste(head(x,limit),collapse=", "),length(x)-limit);
+}
+
 ##' @rdname Boruta
 ##' @method Boruta formula
 ##' @param formula alternatively, formula describing model to be analysed.
 ##' @param data in which to interpret formula.
-##' @S3method Boruta formula
+##' @export
 Boruta.formula<-function(formula,data=.GlobalEnv,...){
  ##Grab and interpret the formula
  terms.formula(formula,data=data)->t;
@@ -301,24 +314,24 @@ Boruta.formula<-function(formula,data=.GlobalEnv,...){
 ##' @param ... additional arguments passed to \code{\link{print}}.
 ##' @return Invisible copy of \code{x}.
 ##' @author Miron B. Kursa
-##' @S3method print Boruta
+##' @export
 print.Boruta<-function(x,...){
  if(class(x)!='Boruta') stop("This is NOT a Boruta object!")
  cat(paste('Boruta performed ',dim(x$ImpHistory)[1],' iterations in ',format(x$timeTaken),'.\n',sep=''));
  if(x$roughfixed) cat(paste('Tentatives roughfixed over the last ',x$averageOver,' iterations.\n',sep=''));
  if(sum(x$finalDecision=='Confirmed')==0){
-  cat(' No attributes has been deemed important\n')} else {
+  cat(' No attributes deemed important.\n')} else {
   writeLines(strwrap(paste(sum(x$finalDecision=='Confirmed'),' attributes confirmed important: ',
-   paste(sep='',collapse=' ',names(x$finalDecision[x$finalDecision=='Confirmed']))),indent=8));
+   .attListPrettyPrint(names(x$finalDecision[x$finalDecision=='Confirmed']))),indent=1));
  }
  if(sum(x$finalDecision=='Rejected')==0){
-  cat(' No attributes has been deemed unimportant\n')} else {
+  cat(' No attributes deemed unimportant.\n')} else {
   writeLines(strwrap(paste(sum(x$finalDecision=='Rejected'),' attributes confirmed unimportant: ',
-   paste(sep='',collapse=' ',names(x$finalDecision[x$finalDecision=='Rejected']))),indent=8));
+   .attListPrettyPrint(names(x$finalDecision[x$finalDecision=='Rejected']))),indent=1));
  }
  if(sum(x$finalDecision=='Tentative')!=0){
   writeLines(strwrap(paste(sum(x$finalDecision=='Tentative'),' tentative attributes left: ',
-   paste(sep='',collapse=' ',names(x$finalDecision[x$finalDecision=='Tentative']))),indent=8));
+   .attListPrettyPrint(names(x$finalDecision[x$finalDecision=='Tentative']))),indent=1));
  }
  invisible(x)
 }
@@ -329,14 +342,12 @@ print.Boruta<-function(x,...){
 ##' @description attStats shows a summary of a Boruta run in an attribute-centred way. It produces a data frame containing some importance
 ##' stats as well as the number of hits that attribute scored and the decision it was given.
 ##' @param x an object of a class Boruta, from which attribute stats should be extracted.
-
 ##' @return A data frame containing, for each attribute that was originally in information system,
 ##' mean, median, maximal and minimal importance, number of hits normalised to number of importance
 ##' source runs performed and the decision copied from \code{finalDecision}.
 ##' @note  When using a Boruta object generated by a \code{\link{TentativeRoughFix}}, the resulting data frame will consist a rough fixed decision.
 ##' @author Miron B. Kursa
-##' @export attStats
-
+##' @export
 ##' @examples
 ##' \dontrun{
 ##' library(mlbench); data(Sonar);
@@ -364,7 +375,7 @@ attStats<-function(x){
 ##' @param withTentative if set to \code{TRUE}, Tentative attributes will be also returned.
 ##' @return A character vector with names of the relevant attributes.
 ##' @author Miron B. Kursa
-##' @export getSelectedAttributes
+##' @export
 ##' @examples
 ##' \dontrun{
 ##' data(iris);

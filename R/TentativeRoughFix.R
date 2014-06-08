@@ -29,7 +29,7 @@
 ##' highly desired, because this test is much weaker than Boruta
 ##' and can lower the confidence of the final result.
 ##' @author Miron B. Kursa
-##' @export TentativeRoughFix
+##' @export
 TentativeRoughFix<-function(x,averageOver='finalRound'){
  if(class(x)!='Boruta')
   stop('This function needs Boruta object as an argument.');
