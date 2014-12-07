@@ -35,6 +35,8 @@ default plot method for Boruta objects, showing boxplots of attribute importance
 \note{
 If \code{col} is given and \code{sort} is \code{TRUE}, the \code{col} will be permuted, so that its order corresponds to
 attribute order in \code{ImpHistory}.
+
+This function will throw an error when \code{x} lacks importance history, i.e., was made with \code{holdHistory} set to \code{FALSE}.
 }
 \examples{
 \dontrun{

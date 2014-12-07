@@ -8,7 +8,7 @@
 Boruta(x, ...)
 
 \method{Boruta}{default}(x, y, pValue = 0.01, mcAdj = TRUE, maxRuns = 100,
-  doTrace = 0, getImp = getImpRfZ, ...)
+  doTrace = 0, holdHistory = TRUE, getImp = getImpRfZ, ...)
 
 \method{Boruta}{formula}(formula, data = .GlobalEnv, ...)
 }
@@ -17,13 +17,15 @@ Boruta(x, ...)
 
 \item{y}{response vector; factor for classification, numeric vector for regression.}
 
-\item{getImp}{function used to obtain attribute importance. The default is getImpRfZ, which runs random forest from \code{randomForest} package and gathers Z-scores of mean decrease accuracy measure.}
+\item{getImp}{function used to obtain attribute importance. The default is getImpRfZ, which runs random forest from \code{randomForest} package and gathers Z-scores of mean decrease accuracy measure. It should return a numeric vector of a size identical to the number of columns of its first argument, containing importance measure of respective attributes. Any order-preserving transformation of this measure will yield the same result. It is assumed that more important attributes get higher importance. +-Inf are accepted, NaNs and NAs are treated as 0s, with a warning.}
 
 \item{pValue}{confidence level. Default value should be used.}
 
 \item{mcAdj}{if set to \code{TRUE}, a multiple comparisons adjustment using the Bonferroni method will be applied. Default value should be used; older (1.x and 2.x) versions of Boruta were effectively using \code{FALSE}.}
 
-\item{maxRuns}{maximal number of importance source runs in the final round. You may increase it to resolve attributes left Tentative.}
+\item{maxRuns}{maximal number of importance source runs. You may increase it to resolve attributes left Tentative.}
+
+\item{holdHistory}{if set to \code{TRUE}, the full history of importance is stored and returned as the \code{ImpHistory} element of the result. Can be used to decrease a memory footprint of Boruta in case this side data is not used, especially when the number of attributes is huge; yet it disables plotting of such made \code{Boruta} objects and the use of the \code{\link{TentativeRoughFix}} function.}
 
 \item{doTrace}{verbosity level. 0 means no tracing, 1 means printing a "." sign after each importance source run,
 2 means same as 1, plus consecutive reporting of test results.}
@@ -40,7 +42,7 @@ An object of class \code{Boruta}, which is a list with the following components:
 containing final result of feature selection.}
 \item{ImpHistory}{a data frame of importances of attributes gathered in each importance source run.
 Beside predictors' importances contains maximal, mean and minimal importance of shadow attributes in each run.
-Rejected attributes have \code{-Inf} importance assumed.}
+Rejected attributes get \code{-Inf} importance. Set to \code{NULL} if \code{holdHistory} was given \code{FALSE}.}
 \item{timeTaken}{time taken by the computation.}
 \item{impSource}{string describing the source of importance, equal to a comment attribute of the \code{getImp} argument.}
 \item{call}{the original call of the \code{Boruta} function.}

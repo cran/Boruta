@@ -1,6 +1,6 @@
 Package: Boruta
-Title: A wrapper algorithm for all-relevant feature selection
-Version: 3.1.0
+Title: Wrapper Algorithm for All-Relevant Feature Selection
+Version: 4.0.0
 Depends: R (>= 2.0.0), randomForest, rFerns
 Suggests: mlbench
 Authors@R: c(person(c("Miron","Bartosz"),"Kursa",role=c("aut","cre"),
@@ -11,10 +11,11 @@ Description: Boruta is an all-relevant feature selection wrapper algorithm.
     importance with importance achievable at random, estimated
     using their permuted copies.
 License: GPL (>= 2)
-Packaged: 2014-06-08 19:17:52 UTC; mbq
+URL: https://m2.icm.edu.pl/boruta/
+Packaged: 2014-12-07 20:14:22 UTC; mbq
 Author: Miron Bartosz Kursa [aut, cre],
   Witold Remigiusz Rudnicki [aut]
 Maintainer: Miron Bartosz Kursa <M.Kursa@icm.edu.pl>
 NeedsCompilation: no
 Repository: CRAN
-Date/Publication: 2014-06-08 23:20:21
+Date/Publication: 2014-12-07 23:07:32

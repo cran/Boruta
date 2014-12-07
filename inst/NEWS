@@ -1,3 +1,15 @@
+Changes in 4.0:
+       - Initial rounds were dropped from the algorithm, as they seem
+       redundant after implementation of a proper p-value adjustment.
+       This should provide noticeable speed-up, however the results
+       may be different than in previous versions.
+       - TentativeRoughFix interface changes in order to adapt to the
+       change mentioned above.
+       - Output of the importance source is validated, so that wrong
+       values will be clearly reported.
+       - Code clean-up.
+
+
 Changes in 3.1:
        - Better status messages.
 

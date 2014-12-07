@@ -13,8 +13,7 @@
 ##' attributes.
 ##' @param x an object of a class Boruta.
 ##' @param averageOver Either number of last importance source runs to
-##' average over, \code{'finalRound'} for averaging over last (final) round or
-## \code{'allRounds'} for averaging over whole Boruta run.
+##' average over or Inf for averaging over the whole Boruta run.
 ##' @return A Boruta class object with modified \code{finalDecision} element.
 ##' Such object has few additional elements:
 ##' \item{originalDecision}{Original \code{finalDecision}.}
@@ -28,11 +27,21 @@
 ##' @note This function should be used only when strict decision is
 ##' highly desired, because this test is much weaker than Boruta
 ##' and can lower the confidence of the final result.
+##' @note \code{x} has to be made with \code{holdHistory} set to
+##' \code{TRUE} for this code to run.
 ##' @author Miron B. Kursa
 ##' @export
-TentativeRoughFix<-function(x,averageOver='finalRound'){
+TentativeRoughFix<-function(x,averageOver=Inf){
  if(class(x)!='Boruta')
   stop('This function needs Boruta object as an argument.');
+ if(is.null(x$ImpHistory))
+  stop('Importance history was not stored during the Boruta run.');
+ if(!is.numeric(averageOver))
+  stop('averageOver should be a numeric vector.');
+ if(length(averageOver)!=1)
+  stop('averageOver should be a one-element vector.');
+ if(averageOver<1)
+  stop('averageOver should be positive.');
 
  tentIdx<-which(x$finalDecision=='Tentative');
  if(length(tentIdx)==0){
@@ -41,18 +50,10 @@ TentativeRoughFix<-function(x,averageOver='finalRound'){
  }
 
  nRuns<-dim(x$ImpHistory)[1];
- if(!is.numeric(averageOver)){
-  averageOver<-if(averageOver=='finalRound'){
-   nRuns-3*x$roundRuns
-  }else{
-   if(averageOver=='allRounds') nRuns else 0
-  }
- }
 
- if(averageOver<1)
-  stop('Bad averageOver argument!');
+
  if(averageOver>nRuns)
-  stop('averageOver exceeds number of runs!');
+  averageOver<-nRuns;
 
  impHistorySubset<-x$ImpHistory[(nRuns-averageOver+1):nRuns,];
  medianTentImp<-sapply(impHistorySubset[,tentIdx],median);

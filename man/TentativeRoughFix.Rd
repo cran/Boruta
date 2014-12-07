@@ -3,13 +3,13 @@
 \alias{TentativeRoughFix}
 \title{Rough fix of Tentative attributes}
 \usage{
-TentativeRoughFix(x, averageOver = "finalRound")
+TentativeRoughFix(x, averageOver = Inf)
 }
 \arguments{
 \item{x}{an object of a class Boruta.}
 
 \item{averageOver}{Either number of last importance source runs to
-average over, \code{'finalRound'} for averaging over last (final) round or}
+average over or Inf for averaging over the whole Boruta run.}
 }
 \value{
 A Boruta class object with modified \code{finalDecision} element.
@@ -36,6 +36,9 @@ importance source runs.
 This function should be used only when strict decision is
 highly desired, because this test is much weaker than Boruta
 and can lower the confidence of the final result.
+
+\code{x} has to be made with \code{holdHistory} set to
+\code{TRUE} for this code to run.
 }
 \author{
 Miron B. Kursa

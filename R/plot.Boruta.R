@@ -34,6 +34,7 @@ generateCol<-function(x,colCode,col,numShadow){
 ##' @param ... additional graphical parameter that will be passed to \code{\link{boxplot}}.
 ##' @note If \code{col} is given and \code{sort} is \code{TRUE}, the \code{col} will be permuted, so that its order corresponds to
 ##' attribute order in \code{ImpHistory}.
+##' @note This function will throw an error when \code{x} lacks importance history, i.e., was made with \code{holdHistory} set to \code{FALSE}.
 ##' @return Invisible copy of \code{x}.
 ##' @examples
 ##' \dontrun{
@@ -49,7 +50,10 @@ generateCol<-function(x,colCode,col,numShadow){
 plot.Boruta<-function(x,colCode=c('green','yellow','red','blue'),sort=TRUE,whichShadow=c(TRUE,TRUE,TRUE),
   col=NULL,xlab='Attributes',ylab='Importance',...){
  #Checking arguments
- if(class(x)!='Boruta') stop('This function needs Boruta object as an argument.');
+ if(class(x)!='Boruta')
+  stop('This function needs Boruta object as an argument.');
+ if(is.null(x$ImpHistory))
+  stop('Importance history was not stored during the Boruta run.');
 
  #Removal of -Infs and conversion to a list
  lz<-lapply(1:ncol(x$ImpHistory),function(i) x$ImpHistory[is.finite(x$ImpHistory[,i]),i]);
@@ -79,7 +83,6 @@ plot.Boruta<-function(x,colCode=c('green','yellow','red','blue'),sort=TRUE,which
 ##' @param x an object of a class Boruta.
 ##' @param colCode a vector containing colour codes for attribute decisions,
 ##' respectively Confirmed, Tentative, Rejected and shadow.
-##' @param showRounds if set, to \code{TRUE}, gray lines separating round will be drawn.
 ##' @param col standard \code{col} attribute, passed to \code{\link{matplot}}.
 ##' If given, suppresses effects of \code{colCode}.
 ##' @param type Plot type that will be passed to \code{\link{matplot}}.
@@ -88,6 +91,7 @@ plot.Boruta<-function(x,colCode=c('green','yellow','red','blue'),sort=TRUE,which
 ##' @param xlab X axis label that will be passed to \code{\link{matplot}}.
 ##' @param ylab Y axis label that will be passed to \code{\link{matplot}}.
 ##' @param ... additional graphical parameter that will be passed to \code{\link{matplot}}.
+##' @note This function will throw an error when \code{x} lacks importance history, i.e., was made with \code{holdHistory} set to \code{FALSE}.
 ##' @return Invisible copy of \code{x}.
 ##' @examples
 ##' \dontrun{
@@ -99,15 +103,16 @@ plot.Boruta<-function(x,colCode=c('green','yellow','red','blue'),sort=TRUE,which
 ##' }
 ##' @author Miron B. Kursa
 ##' @export
-plotImpHistory<-function(x,colCode=c('green','yellow','red','blue'),showRounds=TRUE,col=NULL,type="l",lty=1,pch=0,
+plotImpHistory<-function(x,colCode=c('green','yellow','red','blue'),col=NULL,type="l",lty=1,pch=0,
   xlab='Classifier run',ylab='Importance',...){
  #Checking arguments
  if(class(x)!='Boruta')
   stop('This function needs Boruta object as an argument.');
+ if(is.null(x$ImpHistory))
+  stop('Importance history was not stored during the Boruta run.');
  col<-generateCol(x,colCode,col,3);
 
  #Final plotting
  matplot(0:(nrow(x$ImpHistory)-1),x$ImpHistory,xlab=xlab,ylab=ylab,col=col,type=type,lty=lty,pch=pch,...);
- if(showRounds) abline(v=(0:3)*x$roundRuns,col="gray");
  invisible(x);
 }

@@ -67,10 +67,11 @@ comment(getImpFerns)<-'rFerns importance'
 ##' using their permuted copies.
 ##' @param x data frame of predictors.
 ##' @param y response vector; factor for classification, numeric vector for regression.
-##' @param getImp function used to obtain attribute importance. The default is getImpRfZ, which runs random forest from \code{randomForest} package and gathers Z-scores of mean decrease accuracy measure.
+##' @param getImp function used to obtain attribute importance. The default is getImpRfZ, which runs random forest from \code{randomForest} package and gathers Z-scores of mean decrease accuracy measure. It should return a numeric vector of a size identical to the number of columns of its first argument, containing importance measure of respective attributes. Any order-preserving transformation of this measure will yield the same result. It is assumed that more important attributes get higher importance. +-Inf are accepted, NaNs and NAs are treated as 0s, with a warning.
 ##' @param pValue confidence level. Default value should be used.
 ##' @param mcAdj if set to \code{TRUE}, a multiple comparisons adjustment using the Bonferroni method will be applied. Default value should be used; older (1.x and 2.x) versions of Boruta were effectively using \code{FALSE}.
-##' @param maxRuns maximal number of importance source runs in the final round. You may increase it to resolve attributes left Tentative.
+##' @param maxRuns maximal number of importance source runs. You may increase it to resolve attributes left Tentative.
+##' @param holdHistory if set to \code{TRUE}, the full history of importance is stored and returned as the \code{ImpHistory} element of the result. Can be used to decrease a memory footprint of Boruta in case this side data is not used, especially when the number of attributes is huge; yet it disables plotting of such made \code{Boruta} objects and the use of the \code{\link{TentativeRoughFix}} function.
 ##' @param doTrace verbosity level. 0 means no tracing, 1 means printing a "." sign after each importance source run,
 ##' 2 means same as 1, plus consecutive reporting of test results.
 ##' @param ... additional parameters passed to \code{getImp}.
@@ -79,7 +80,7 @@ comment(getImpFerns)<-'rFerns importance'
 ##' containing final result of feature selection.}
 ##' \item{ImpHistory}{a data frame of importances of attributes gathered in each importance source run.
 ##' Beside predictors' importances contains maximal, mean and minimal importance of shadow attributes in each run.
-##' Rejected attributes have \code{-Inf} importance assumed.}
+##' Rejected attributes get \code{-Inf} importance. Set to \code{NULL} if \code{holdHistory} was given \code{FALSE}.}
 ##' \item{timeTaken}{time taken by the computation.}
 ##' \item{impSource}{string describing the source of importance, equal to a comment attribute of the \code{getImp} argument.}
 ##' \item{call}{the original call of the \code{Boruta} function.}
@@ -142,7 +143,7 @@ comment(getImpFerns)<-'rFerns importance'
 ##' #Shows important bands
 ##' plot(Bor.son,sort=FALSE);
 ##' }
-Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,getImp=getImpRfZ,...){
+Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,holdHistory=TRUE,getImp=getImpRfZ,...){
  if(!is.null(attr(getImp,"toLoad"))){
   #Load packages required by getImp
   if(!all(sapply(attr(getImp,"toLoad"),require,character.only=TRUE))){
@@ -168,11 +169,9 @@ Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,getImp
   stop('Cannot process NAs in input. Please remove them.');
  if(maxRuns<11)
   stop('maxRuns must be greater than 10.')
- isRuns<-0;
 
- ##rfCaller expands the information system with newly built random attributes, calculates importance
- ## and updates hits register and ZHistory
- rfCaller<-function(roundLevel){
+ ##Expands the information system with newly built random attributes and calculates importance
+ addShadowsAndGetImp<-function(decReg,runs){
   #xSha is going to be a data frame with shadow attributes; time to init it.
   xSha<-x[,decReg!="Rejected",drop=F];
   while(dim(xSha)[2]<5) xSha<-cbind(xSha,xSha); #There must be at least 5 random attributes.
@@ -183,45 +182,45 @@ Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,getImp
   names(xSha)<-paste('shadow',1:nSha,sep="");
 
   #Notifying user of our progress
-  isRuns<<-isRuns+1;
   if(doTrace==2)
-   message(sprintf(' %s. run of importance source...',isRuns));
+   message(sprintf(' %s. run of importance source...',runs));
 
   #Calling importance source; "..." can be used by the user to pass rf attributes (for instance ntree)
   impRaw<-getImp(cbind(x[,decReg!="Rejected"],xSha),y,...);
+  if(!is.numeric(impRaw))
+   stop("getImp result is not a numeric vector. Please check the given getImp function.");
+  if(length(impRaw)!=sum(decReg!="Rejected")+ncol(xSha))
+   stop("getImp result has a wrong length. Please check the given getImp function.");
+  if(any(is.na(impRaw)|is.nan(impRaw))){
+   impRaw[is.na(impRaw)|is.nan(impRaw)]<-0;
+   warning("getImp result contains NA(s) or NaN(s); replacing with 0(s), yet this is suspicious.");
+  }
 
   #Importance must have Rejected attributes put on place and filled with -Infs
   imp<-rep(-Inf,nAtt+nSha);names(imp)<-c(attNames,names(xSha));
   impRaw->imp[c(decReg!="Rejected",rep(TRUE,nSha))];
-  shaI<-rev(sort(imp[(nAtt+1):length(imp)]));imp[1:nAtt]->imp;
+  shaImp<-imp[(nAtt+1):length(imp)];imp[1:nAtt]->imp;
 
-  #Now we increment hit register for features that got better importance than roundLevel-ith best shadow
-  imp>shaI[roundLevel]->hits;
-  hitReg[hits]<<-hitReg[hits]+1;
-
-  #And update ZHistory with scores obtained in this iteration
-  imp<-c(imp,shadowMax=max(shaI),shadowMean=mean(shaI),shadowMin=min(shaI));
-  ZHistory<<-c(ZHistory,list(imp));
-
-  return(NULL);
+  return(list(imp=imp,shaImp=shaImp));
  }
 
- ##doTests checks whether number of hits is significant
- doTests<-function(runs,doAcceptances){
+ ##Assigns hits
+ assignHits<-function(hitReg,curImp){
+  curImp$imp>max(curImp$shaImp)->hits;
+  hitReg[hits]<-hitReg[hits]+1;
+  return(hitReg);
+ }
+
+ ##Checks whether number of hits is significant
+ doTests<-function(decReg,hitReg,runs){
   pAdjMethod<-ifelse(mcAdj[1],'bonferroni','none');
-  #If attribute is significantly more frequent better than shadowMax, its claimed Confirmed (in final round only)
+  #If attribute is significantly more frequent better than shadowMax, its claimed Confirmed
   toAccept<-p.adjust(pbinom(hitReg-1,runs,0.5,lower.tail=FALSE),method=pAdjMethod)<pValue;
-  (doAcceptances & decReg=="Tentative" & toAccept)->toAccept;
+  (decReg=="Tentative" & toAccept)->toAccept;
 
   #If attribute is significantly more frequent worse than shadowMax, its claimed Rejected (=irrelevant)
-  #In initial round, criterion for being random is lowered, in order to compensate fluctuations
-  #Thus we don't judge if attribute is confirmed till the final round
   toReject<-p.adjust(pbinom(hitReg,runs,0.5,lower.tail=TRUE),method=pAdjMethod)<pValue;
   (decReg=="Tentative" & toReject)->toReject;
-
-  #Updating decReg
-  decReg[toAccept]<<-"Confirmed";
-  "Rejected"->>decReg[toReject];
 
   #Trace the result
   nAcc<-sum(toAccept);
@@ -231,48 +230,46 @@ Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,getImp
   nRej<-sum(toReject);
   if(doTrace>0 & nRej>0)
    message(sprintf("Rejected %s attributes: %s",nRej,.attListPrettyPrint(attNames[toReject])));
+
+  #Updating decReg
+  decReg[toAccept]<-"Confirmed";"Rejected"->decReg[toReject];
+  return(decReg);
  }
 
  ##Creating some useful constants
  nAtt<-ncol(x); nrow(x)->nObjects;
  attNames<-names(x); c("Tentative","Confirmed","Rejected")->confLevels;
 
- #Calculating number of runs in a round (How much runs we need, so that probability of worst
- # important attribute (infinitesimally better than shadowMax) having 0 hits is smaller than pValue)
- roundRuns<-ifelse(mcAdj[1],
-  ceiling(-log(pValue,2)),
-  ceiling(-log(pValue/nAtt,2)));
-
-
- ##Initiating registers
+ ##Initiate state
  decReg<-factor(rep("Tentative",nAtt),levels=confLevels);
  hitReg<-rep(0,nAtt);names(hitReg)<-attNames;
- ZHistory<-list();
+ impHistory<-list();
+ runs<-0;
 
  ##Main loop
- #Initial rounds
- roundLevels<-c(5,3,2);
- for(round in 1:3) if(any(decReg!="Rejected")){
-  if(doTrace>0) message(sprintf('Initial round %d: ',round));
-  replicate(roundRuns,rfCaller(roundLevels[round]));
-  doTests(roundRuns,FALSE);
-  hitReg<-0*hitReg;
- }
 
- #Final round
- if(doTrace>0) message('Final round: ');
- runInFinalRound<-0;
- while(any(decReg=="Tentative") & runInFinalRound<maxRuns){
-  rfCaller(1); runInFinalRound+1->runInFinalRound;
-  if(runInFinalRound>=roundRuns) doTests(runInFinalRound,TRUE);
+ while(any(decReg=="Tentative") && (runs+1->runs)<maxRuns){
+  curImp<-addShadowsAndGetImp(decReg,runs);
+  hitReg<-assignHits(hitReg,curImp);
+  decReg<-doTests(decReg,hitReg,runs);
+
+  #If needed, update impHistory with scores obtained in this iteration
+  if(holdHistory){
+   imp<-c(curImp$imp,
+    shadowMax=max(curImp$shaImp),
+    shadowMean=mean(curImp$shaImp),
+    shadowMin=min(curImp$shaImp));
+   impHistory<-c(impHistory,list(imp));
+  }
  }
 
  ##Building result
- ZHistory<-do.call(rbind,ZHistory);
+ impHistory<-do.call(rbind,impHistory);
  names(decReg)<-attNames;
- ans<-list(finalDecision=decReg,ImpHistory=ZHistory,
-   pValue=pValue,maxRuns=maxRuns,light=TRUE,roundRuns=roundRuns,mcAdj=mcAdj,
-   timeTaken=Sys.time()-timeStart,roughfixed=FALSE,call=cl,impSource=comment(getImp));
+ ans<-list(finalDecision=decReg,ImpHistory=impHistory,
+   pValue=pValue,maxRuns=maxRuns,light=TRUE,mcAdj=mcAdj,
+   timeTaken=Sys.time()-timeStart,roughfixed=FALSE,call=cl,
+   impSource=comment(getImp));
 
  "Boruta"->class(ans);
  return(ans);
@@ -346,6 +343,8 @@ print.Boruta<-function(x,...){
 ##' mean, median, maximal and minimal importance, number of hits normalised to number of importance
 ##' source runs performed and the decision copied from \code{finalDecision}.
 ##' @note  When using a Boruta object generated by a \code{\link{TentativeRoughFix}}, the resulting data frame will consist a rough fixed decision.
+##' @note \code{x} has to be made with \code{holdHistory} set to
+##' \code{TRUE} for this code to run.
 ##' @author Miron B. Kursa
 ##' @export
 ##' @examples
@@ -361,6 +360,8 @@ print.Boruta<-function(x,...){
 attStats<-function(x){
  if(class(x)!='Boruta')
   stop('This function needs Boruta object as an argument.');
+ if(is.null(x$ImpHistory))
+  stop('Importance history was not stored during the Boruta run.');
  lz<-lapply(1:ncol(x$ImpHistory),function(i) x$ImpHistory[is.finite(x$ImpHistory[,i]),i]);
  colnames(x$ImpHistory)->names(lz);
  mr<-lz$shadowMax; lz[1:(length(lz)-3)]->lz;
