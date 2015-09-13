@@ -8,95 +8,46 @@
 Boruta<-function(x,...)
  UseMethod("Boruta");
 
-##' @rdname getImpRf
-##' @name getImpRf
-##' @aliases getImpRfZ getImpRfGini getImpRfRaw
-##' @title randomForest importance adapters
-##' @description Those function is intended to be given to a \code{getImp} argument of \code{\link{Boruta}} function to be called by the Boruta algorithm as an importance source.
-##' \code{getImpRfZ} generates default, normalized permutation importance, \code{getImpRfRaw} raw permutation importance, finally \code{getImpRfGini} generates Gini index importance.
-##' @param x data frame of predictors including shadows.
-##' @param y response vector.
-##' @param ... parameters passed to the underlying \code{\link{randomForest}} call; they are relayed from \code{...} of \code{\link{Boruta}}.
-##' @import randomForest
-##' @export
-getImpRfZ<-function(x,y,...){
- randomForest(x,y,importance=TRUE,keep.forest=FALSE,...)->rf;
- importance(rf,1,scale=TRUE)[,1];
-}
-comment(getImpRfZ)<-'randomForest normalized permutation importance';
-
-##' @rdname getImpRf
-##' @export
-getImpRfRaw<-function(x,y,...){
- randomForest(x,y,importance=TRUE,keep.forest=FALSE,...)->rf;
- importance(rf,1,scale=FALSE)[,1];
-}
-comment(getImpRfRaw)<-'randomForest raw permutation importance';
-
-##' @rdname getImpRf
-##' @export
-getImpRfGini<-function(x,y,...){
- randomForest(x,y,keep.forest=FALSE,...)->rf;
- importance(rf,2,scale=FALSE)[,1];
-}
-comment(getImpRfGini)<-'randomForest Gini index importance';
-
-
-##' @title Random Ferns importance
-##' @description This function is intended to be given to a \code{getImp} argument of \code{\link{Boruta}} function to be called by the Boruta algorithm as an importance source.
-##' @param x data frame of predictors including shadows.
-##' @param y response vector.
-##' @param ... parameters passed to the underlying \code{\link{rFerns}} call; they are relayed from \code{...} of \code{\link{Boruta}}.
-##' @import rFerns
-##' @export
-##' @note Random Ferns importance calculation should be much faster than using Random Forest; however, one must first optimize the value of the \code{depth} parameter and
-##' it is quite likely that the number of ferns in the ensemble required for the importance to converge will be higher than the number of trees in case of Random Forest.
-getImpFerns<-function(x,y,...){
- f<-rFerns(x,y,saveForest=FALSE,importance=TRUE,...);
- f$importance[,1]
-}
-comment(getImpFerns)<-'rFerns importance'
-
-
 ##' @rdname Boruta
 ##' @title Important attribute search using Boruta algorithm
 ##' @method Boruta default
 ##' @description Boruta is an all-relevant feature selection wrapper algorithm.
-##' It finds relevant features by comparing original attributes'
-##' importance with importance achievable at random, estimated
-##' using their permuted copies.
+##' It finds relevant features by comparing original attributes' importance with importance achievable at random, estimated using their permuted copies.
 ##' @param x data frame of predictors.
 ##' @param y response vector; factor for classification, numeric vector for regression.
-##' @param getImp function used to obtain attribute importance. The default is getImpRfZ, which runs random forest from \code{randomForest} package and gathers Z-scores of mean decrease accuracy measure. It should return a numeric vector of a size identical to the number of columns of its first argument, containing importance measure of respective attributes. Any order-preserving transformation of this measure will yield the same result. It is assumed that more important attributes get higher importance. +-Inf are accepted, NaNs and NAs are treated as 0s, with a warning.
+##' @param getImp function used to obtain attribute importance.
+##' The default is getImpRfZ, which runs random forest from the \code{ranger} package and gathers Z-scores of mean decrease accuracy measure.
+##' It should return a numeric vector of a size identical to the number of columns of its first argument, containing importance measure of respective attributes.
+##' Any order-preserving transformation of this measure will yield the same result.
+##' It is assumed that more important attributes get higher importance. +-Inf are accepted, NaNs and NAs are treated as 0s, with a warning.
 ##' @param pValue confidence level. Default value should be used.
 ##' @param mcAdj if set to \code{TRUE}, a multiple comparisons adjustment using the Bonferroni method will be applied. Default value should be used; older (1.x and 2.x) versions of Boruta were effectively using \code{FALSE}.
-##' @param maxRuns maximal number of importance source runs. You may increase it to resolve attributes left Tentative.
-##' @param holdHistory if set to \code{TRUE}, the full history of importance is stored and returned as the \code{ImpHistory} element of the result. Can be used to decrease a memory footprint of Boruta in case this side data is not used, especially when the number of attributes is huge; yet it disables plotting of such made \code{Boruta} objects and the use of the \code{\link{TentativeRoughFix}} function.
-##' @param doTrace verbosity level. 0 means no tracing, 1 means printing a "." sign after each importance source run,
-##' 2 means same as 1, plus consecutive reporting of test results.
+##' @param maxRuns maximal number of importance source runs.
+##' You may increase it to resolve attributes left Tentative.
+##' @param holdHistory if set to \code{TRUE}, the full history of importance is stored and returned as the \code{ImpHistory} element of the result.
+##' Can be used to decrease a memory footprint of Boruta in case this side data is not used, especially when the number of attributes is huge; yet it disables plotting of such made \code{Boruta} objects and the use of the \code{\link{TentativeRoughFix}} function.
+##' @param doTrace verbosity level. 0 means no tracing, 1 means reporting decision about each attribute as soon as it is justified, 2 means same as 1, plus reporting each importance source run.
 ##' @param ... additional parameters passed to \code{getImp}.
 ##' @return An object of class \code{Boruta}, which is a list with the following components:
-##' \item{finalDecision}{a factor of three value: \code{Confirmed}, \code{Rejected} or \code{Tentative},
-##' containing final result of feature selection.}
+##' \item{finalDecision}{a factor of three value: \code{Confirmed}, \code{Rejected} or \code{Tentative}, containing final result of feature selection.}
 ##' \item{ImpHistory}{a data frame of importances of attributes gathered in each importance source run.
-##' Beside predictors' importances contains maximal, mean and minimal importance of shadow attributes in each run.
-##' Rejected attributes get \code{-Inf} importance. Set to \code{NULL} if \code{holdHistory} was given \code{FALSE}.}
+##' Beside predictors' importances, it contains maximal, mean and minimal importance of shadow attributes in each run.
+##' Rejected attributes get \code{-Inf} importance.
+##' Set to \code{NULL} if \code{holdHistory} was given \code{FALSE}.}
 ##' \item{timeTaken}{time taken by the computation.}
 ##' \item{impSource}{string describing the source of importance, equal to a comment attribute of the \code{getImp} argument.}
 ##' \item{call}{the original call of the \code{Boruta} function.}
-##' @details Boruta iteratively compares importances of attributes with importances of shadow attributes, created by
-##' shuffling original ones. Attributes that have significantly worst importance than shadow ones
-##' are being consecutively dropped. On the other hand, attributes that are significantly better than
-##' shadows are admitted to be Confirmed. Shadows are re-created in each iteration.
-##' Algorithm stops when only Confirmed attributes are left, or when it reaches \code{maxRuns} importance source runs
-##' in the last round. If the second scenario occurs, some attributes may be left without a decision. They are
-##' claimed Tentative. You may try to extend \code{maxRuns} or lower \code{pValue} to clarify them, but in
-##' some cases their importances do fluctuate too much for Boruta to converge.
-##' Instead, you can use \code{\link{TentativeRoughFix}} function, which will perform other, weaker test to make a final
-##' decision, or simply treat them as undecided in further analysis.
-##' @note Version 2.0.0 changes some name conventions and thus may be incompatible with scripts written for 1.x.x version and
-##' old Boruta objects. Solutions of most problems of this kind should boil down to change of \code{ZScoreHistory} to \code{ImpHistory}
-##' in script source or Boruta object structure.
+##' @details Boruta iteratively compares importances of attributes with importances of shadow attributes, created by shuffling original ones.
+##' Attributes that have significantly worst importance than shadow ones are being consecutively dropped.
+##' On the other hand, attributes that are significantly better than shadows are admitted to be Confirmed.
+##' Shadows are re-created in each iteration.
+##' Algorithm stops when only Confirmed attributes are left, or when it reaches \code{maxRuns} importance source runs.
+##' If the second scenario occurs, some attributes may be left without a decision.
+##' They are claimed Tentative.
+##' You may try to extend \code{maxRuns} or lower \code{pValue} to clarify them, but in some cases their importances do fluctuate too much for Boruta to converge.
+##' Instead, you can use \code{\link{TentativeRoughFix}} function, which will perform other, weaker test to make a final decision, or simply treat them as undecided in further analysis.
+##' @note Version 5.0 and 2.0 change some name conventions and thus may be incompatible with scripts written for earlier Boruta versions.
+##' Solutions of most problems of this kind should boil down to change of \code{ZScoreHistory} to \code{ImpHistory} in script source or Boruta object structure.
 ##' @references Miron B. Kursa, Witold R. Rudnicki (2010). Feature Selection with the Boruta Package.
 ##' \emph{Journal of Statistical Software, 36(11)}, p. 1-13.
 ##' URL: \url{http://www.jstatsoft.org/v36/i11/}
@@ -111,20 +62,11 @@ comment(getImpFerns)<-'rFerns importance'
 ##' Boruta(Species~.,data=iris.extended,doTrace=2)->Boruta.iris.extended
 ##' #Nonsense attributes should be rejected
 ##' print(Boruta.iris.extended);
+##'
 ##' #Boruta using rFerns' importance
 ##' Boruta(Species~.,data=iris.extended,getImp=getImpFerns)->Boruta.ferns.irisE
 ##' print(Boruta.ferns.irisE);
-##' \dontrun{
-##' #Boruta on the Ozone data from mlbench
-##' library(mlbench); data(Ozone);
-##' na.omit(Ozone)->ozo;
-##' #Takes some time, so be patient
-##' Boruta(V4~.,data=ozo,doTrace=2)->Bor.ozo;
-##' cat('Random forest run on all attributes:\n');
-##' print(randomForest(V4~.,data=ozo));
-##' cat('Random forest run only on confirmed attributes:\n');
-##' print(randomForest(ozo[,getSelectedAttributes(Bor.ozo)],ozo$V4));
-##' }
+##'
 ##' \dontrun{
 ##' #Boruta on the HouseVotes84 data from mlbench
 ##' library(mlbench); data(HouseVotes84);
@@ -133,6 +75,18 @@ comment(getImpFerns)<-'rFerns importance'
 ##' Boruta(Class~.,data=hvo,doTrace=2)->Bor.hvo;
 ##' print(Bor.hvo);
 ##' plot(Bor.hvo);
+##' plotImpHistory(Bor.hvo);
+##' }
+##' \dontrun{
+##' #Boruta on the Ozone data from mlbench
+##' library(mlbench); data(Ozone);
+##' library(randomForest);
+##' na.omit(Ozone)->ozo;
+##' Boruta(V4~.,data=ozo,doTrace=2)->Bor.ozo;
+##' cat('Random forest run on all attributes:\n');
+##' print(randomForest(V4~.,data=ozo));
+##' cat('Random forest run only on confirmed attributes:\n');
+##' print(randomForest(ozo[,getSelectedAttributes(Bor.ozo)],ozo$V4));
 ##' }
 ##' \dontrun{
 ##' #Boruta on the Sonar data from mlbench
@@ -144,13 +98,6 @@ comment(getImpFerns)<-'rFerns importance'
 ##' plot(Bor.son,sort=FALSE);
 ##' }
 Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,holdHistory=TRUE,getImp=getImpRfZ,...){
- if(!is.null(attr(getImp,"toLoad"))){
-  #Load packages required by getImp
-  if(!all(sapply(attr(getImp,"toLoad"),require,character.only=TRUE))){
-   stop('Unable to load all packages required by given getImp.');
-  }
- }
-
  #Timer starts... now!
  timeStart<-Sys.time();
 
@@ -215,11 +162,11 @@ Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,holdHi
  doTests<-function(decReg,hitReg,runs){
   pAdjMethod<-ifelse(mcAdj[1],'bonferroni','none');
   #If attribute is significantly more frequent better than shadowMax, its claimed Confirmed
-  toAccept<-p.adjust(pbinom(hitReg-1,runs,0.5,lower.tail=FALSE),method=pAdjMethod)<pValue;
+  toAccept<-stats::p.adjust(stats::pbinom(hitReg-1,runs,0.5,lower.tail=FALSE),method=pAdjMethod)<pValue;
   (decReg=="Tentative" & toAccept)->toAccept;
 
   #If attribute is significantly more frequent worse than shadowMax, its claimed Rejected (=irrelevant)
-  toReject<-p.adjust(pbinom(hitReg,runs,0.5,lower.tail=TRUE),method=pAdjMethod)<pValue;
+  toReject<-stats::p.adjust(stats::pbinom(hitReg,runs,0.5,lower.tail=TRUE),method=pAdjMethod)<pValue;
   (decReg=="Tentative" & toReject)->toReject;
 
   #Trace the result
@@ -279,7 +226,7 @@ Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,holdHi
  x<-sort(x);
  if(length(x)<limit+1)
   return(sprintf("%s.",paste(x,collapse=", ")));
- sprintf("%s and %s more.",paste(head(x,limit),collapse=", "),length(x)-limit);
+ sprintf("%s and %s more.",paste(utils::head(x,limit),collapse=", "),length(x)-limit);
 }
 
 ##' @rdname Boruta
@@ -289,7 +236,7 @@ Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,holdHi
 ##' @export
 Boruta.formula<-function(formula,data=.GlobalEnv,...){
  ##Grab and interpret the formula
- terms.formula(formula,data=data)->t;
+ stats::terms.formula(formula,data=data)->t;
  x<-eval(attr(t,"variables"),data);
  apply(attr(t,"factors"),1,sum)>0->sel;
  nam<-rownames(attr(t,"factors"))[sel];
@@ -331,63 +278,4 @@ print.Boruta<-function(x,...){
    .attListPrettyPrint(names(x$finalDecision[x$finalDecision=='Tentative']))),indent=1));
  }
  invisible(x)
-}
-
-
-##' @name attStats
-##' @title Extract attribute statistics
-##' @description attStats shows a summary of a Boruta run in an attribute-centred way. It produces a data frame containing some importance
-##' stats as well as the number of hits that attribute scored and the decision it was given.
-##' @param x an object of a class Boruta, from which attribute stats should be extracted.
-##' @return A data frame containing, for each attribute that was originally in information system,
-##' mean, median, maximal and minimal importance, number of hits normalised to number of importance
-##' source runs performed and the decision copied from \code{finalDecision}.
-##' @note  When using a Boruta object generated by a \code{\link{TentativeRoughFix}}, the resulting data frame will consist a rough fixed decision.
-##' @note \code{x} has to be made with \code{holdHistory} set to
-##' \code{TRUE} for this code to run.
-##' @author Miron B. Kursa
-##' @export
-##' @examples
-##' \dontrun{
-##' library(mlbench); data(Sonar);
-##' #Takes some time, so be patient
-##' Boruta(Class~.,data=Sonar,doTrace=2)->Bor.son;
-##' print(Bor.son);
-##' stats<-attStats(Bor.son);
-##' print(stats);
-##' plot(normHits~meanZ,col=stats$decision,data=stats);
-##' }
-attStats<-function(x){
- if(class(x)!='Boruta')
-  stop('This function needs Boruta object as an argument.');
- if(is.null(x$ImpHistory))
-  stop('Importance history was not stored during the Boruta run.');
- lz<-lapply(1:ncol(x$ImpHistory),function(i) x$ImpHistory[is.finite(x$ImpHistory[,i]),i]);
- colnames(x$ImpHistory)->names(lz);
- mr<-lz$shadowMax; lz[1:(length(lz)-3)]->lz;
- t(sapply(lz,function(x) c(mean(x),median(x),min(x),max(x),sum(mr[1:length(x)]<x)/length(mr))))->st;
- st<-data.frame(st,x$finalDecision);
- names(st)<-c("meanZ","medianZ","minZ","maxZ","normHits","decision");
- return(st);
-}
-
-##' @title Extract names of the selected attributes
-##' @param x an object of a class Boruta, from which relevant attributes names should be extracted.
-##' @param withTentative if set to \code{TRUE}, Tentative attributes will be also returned.
-##' @return A character vector with names of the relevant attributes.
-##' @author Miron B. Kursa
-##' @export
-##' @examples
-##' \dontrun{
-##' data(iris);
-##' #Takes some time, so be patient
-##' Boruta(Species~.,data=iris,doTrace=2)->Bor.iris;
-##' print(Bor.iris);
-##' print(getSelectedAttributes(Bor.iris));
-##' }
-getSelectedAttributes<-function(x,withTentative=FALSE){
- if(class(x)!='Boruta') stop('This function needs Boruta object as an argument.');
- names(x$finalDecision)[
-  x$finalDecision%in%(if(!withTentative) "Confirmed" else c("Confirmed","Tentative"))
- ]
 }

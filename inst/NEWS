@@ -1,3 +1,14 @@
+Changes in 5.0:
+       - ranger RF implementaion replaced randomForest in default
+       importance providers, bringing speed and parallel processing
+       capabilities. Results should be the same, but there may be minor
+       differances. Using getImp=getImpLegacyRfZ restores legacy
+       behaviour. See ?getImpLegacyRf for a further discussion.
+       - Names of columns in the attStats output changed to reflect the
+       fact that Boruta may use arbitrary importance source.
+       - Documentation fixes, better organisation of code over files.
+
+
 Changes in 4.0:
        - Initial rounds were dropped from the algorithm, as they seem
        redundant after implementation of a proper p-value adjustment.
