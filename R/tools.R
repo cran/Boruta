@@ -4,9 +4,9 @@
 
 ### Extractors ###
 
-##' @name attStats
-##' @title Extract attribute statistics
-##' @description attStats shows a summary of a Boruta run in an attribute-centred way.
+##' Extract attribute statistics
+##'
+##' \code{attStats} shows a summary of a Boruta run in an attribute-centred way.
 ##' It produces a data frame containing some importance stats as well as the number of hits that attribute scored and the decision it was given.
 ##' @param x an object of a class Boruta, from which attribute stats should be extracted.
 ##' @return A data frame containing, for each attribute that was originally in information system, mean, median, maximal and minimal importance, number of hits normalised to number of importance source runs performed and the decision copied from \code{finalDecision}.
@@ -38,7 +38,9 @@ attStats<-function(x){
  return(st);
 }
 
-##' @title Extract names of the selected attributes
+##' Extract names of the selected attributes
+##'
+##' \code{getSelectedAttributes} returns a vector of names of attributes selected during a Boruta run.
 ##' @param x an object of a class Boruta, from which relevant attributes names should be extracted.
 ##' @param withTentative if set to \code{TRUE}, Tentative attributes will be also returned.
 ##' @return A character vector with names of the relevant attributes.
@@ -61,13 +63,10 @@ getSelectedAttributes<-function(x,withTentative=FALSE){
 
 ### TentativeRoughFix ###
 
-##' @name TentativeRoughFix
-##' @title Rough fix of Tentative attributes
-##' @description In some circumstances (too short Boruta run,
-##' unfortunate mixing of shadow attributes, tricky dataset\ldots), Boruta
-##' can leave some attributes Tentative. \code{TentativeRoughFix} performs a
-##' simplified, weaker test for judging such
-##' attributes.
+##' Rough fix of Tentative attributes
+##'
+##' In some circumstances (too short Boruta run, unfortunate mixing of shadow attributes, tricky dataset\ldots), Boruta can leave some attributes Tentative.
+##' \code{TentativeRoughFix} performs a simplified, weaker test for judging such attributes.
 ##' @param x an object of a class Boruta.
 ##' @param averageOver Either number of last importance source runs to
 ##' average over or Inf for averaging over the whole Boruta run.
@@ -145,13 +144,13 @@ generateCol<-function(x,colCode,col,numShadow){
  return(col);
 }
 
-##' @name plot.Boruta
+##' Plot Boruta object
+##'
+##' Default plot method for Boruta objects, showing boxplots of attribute importance over run.
 ##' @method plot Boruta
-##' @title Plot Boruta object
-##' @description default plot method for Boruta objects, showing boxplots of attribute importances over run.
 ##' @param x an object of a class Boruta.
 ##' @param colCode a vector containing colour codes for attribute decisions, respectively Confirmed, Tentative, Rejected and shadow.
-##' @param sort controls weather boxplots should be ordered, or left in original order.
+##' @param sort controls whether boxplots should be ordered, or left in original order.
 ##' @param whichShadow a logical vector controlling which shadows should be drawn; switches respectively max shadow, mean shadow and min shadow.
 ##' @param col standard \code{col} attribute. If given, suppresses effects of \code{colCode}.
 ##' @param xlab X axis label that will be passed to \code{\link{boxplot}}.
@@ -201,9 +200,9 @@ plot.Boruta<-function(x,colCode=c('green','yellow','red','blue'),sort=TRUE,which
  invisible(x);
 }
 
-##' @name plotImpHistory
-##' @title Plot Boruta object as importance history
-##' @description alternative plot method for Boruta objects, showing matplot of attribute importances over run.
+##' Plot Boruta object as importance history
+##'
+##' Alternative plot method for Boruta objects, showing matplot of attribute importance over run.
 ##' @param x an object of a class Boruta.
 ##' @param colCode a vector containing colour codes for attribute decisions, respectively Confirmed, Tentative, Rejected and shadow.
 ##' @param col standard \code{col} attribute, passed to \code{\link{matplot}}. If given, suppresses effects of \code{colCode}.

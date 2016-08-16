@@ -2,12 +2,13 @@
 # Author: Miron B. Kursa
 ###############################################################################
 
-##' @rdname getImpLegacyRf
-##' @name getImpLegacyRf
-##' @aliases getImpLegacyRfZ getImpLegacyRfGini getLegacyImpRfRaw
-##' @title randomForest importance adapters
-##' @description Those function is intended to be given to a \code{getImp} argument of \code{\link{Boruta}} function to be called by the Boruta algorithm as an importance source.
+##' randomForest importance adapters
+##'
+##' Those function is intended to be given to a \code{getImp} argument of \code{\link{Boruta}} function to be called by the Boruta algorithm as an importance source.
 ##' \code{getImpLegacyRfZ} generates default, normalized permutation importance, \code{getImpLegacyRfRaw} raw permutation importance, finally \code{getImpLegacyRfGini} generates Gini index importance, all using \code{\link[randomForest]{randomForest}} as a Random Forest algorithm implementation.
+##' @name getImpLegacyRf
+##' @rdname getImpLegacyRf
+##' @aliases getImpLegacyRfZ getImpLegacyRfGini getLegacyImpRfRaw
 ##' @note The \code{getImpLegacyRfZ} function was a default importance source in Boruta versions prior to 5.0; since then \code{\link{ranger}} Random Forest implementation is used instead of \code{\link[randomForest]{randomForest}}, for speed, memory conservation and an ability to utilise multithreading.
 ##' Both importance sources should generally lead to the same results, yet there are differences.
 ##'
@@ -61,12 +62,13 @@ getImpLegacyRfGini<-function(x,y,...){
 comment(getImpLegacyRfGini)<-'randomForest Gini index importance';
 
 
-##' @rdname getImpRf
-##' @name getImpRf
-##' @aliases getImpRfZ getImpRfGini getImpRfRaw
-##' @title ranger Random Forest importance adapters
-##' @description Those function is intended to be given to a \code{getImp} argument of \code{\link{Boruta}} function to be called by the Boruta algorithm as an importance source.
+##' ranger Random Forest importance adapters
+##'
+##' Those function is intended to be given to a \code{getImp} argument of \code{\link{Boruta}} function to be called by the Boruta algorithm as an importance source.
 ##' \code{getImpRfZ} generates default, normalized permutation importance, \code{getImpRfRaw} raw permutation importance, finally \code{getImpRfGini} generates Gini index importance.
+##' @name getImpRf
+##' @rdname getImpRf
+##' @aliases getImpRfZ getImpRfGini getImpRfRaw
 ##' @param x data frame of predictors including shadows.
 ##' @param y response vector.
 ##' @param ntree  Number of trees in the forest; copied into \code{\link{ranger}}'s native num.trees, put to retain transparent compatibility with randomForest.
@@ -76,6 +78,16 @@ comment(getImpLegacyRfGini)<-'randomForest Gini index importance';
 ##' @import ranger
 ##' @export
 getImpRfZ<-function(x,y,ntree=500,num.trees=ntree,...){
+ if(inherits(y,"Surv")){
+  x$shadow.Boruta.time<-y[,"time"];
+  x$shadow.Boruta.status<-y[,"status"];
+  return(ranger::ranger(data=x,
+   dependent.variable.name="shadow.Boruta.time",
+   status.variable.name="shadow.Boruta.status",
+   num.trees=num.trees,importance="permutation",
+   scale.permutation.importance=TRUE,
+   write.forest=FALSE,...)$variable.importance);
+ }
  #Abusing the fact that Boruta disallowes attributes with names
  # starting from "shadow"
  x$shadow.Boruta.decision<-y;
@@ -89,6 +101,8 @@ comment(getImpRfZ)<-'ranger normalized permutation importance';
 ##' @rdname getImpRf
 ##' @export
 getImpRfGini<-function(x,y,ntree=500,num.trees=ntree,...){
+ if(inherits(y,"Surv"))
+  stop("Ranger cannot produce Gini importance for survival problems.")
  x$shadow.Boruta.decision<-y;
  ranger::ranger(data=x,dependent.variable.name="shadow.Boruta.decision",
   num.trees=num.trees,importance="impurity",
@@ -101,6 +115,15 @@ comment(getImpRfGini)<-'ranger Gini index importance';
 ##' @rdname getImpRf
 ##' @export
 getImpRfRaw<-function(x,y,ntree=500,num.trees=ntree,...){
+ if(inherits(y,"Surv")){
+  x$shadow.Boruta.time<-y[,"time"];
+  x$shadow.Boruta.status<-y[,"status"];
+  return(ranger::ranger(data=x,
+   dependent.variable.name="shadow.Boruta.time",
+   status.variable.name="shadow.Boruta.status",
+   num.trees=num.trees,importance="permutation",
+   write.forest=FALSE,...)$variable.importance);
+ }
  x$shadow.Boruta.decision<-y;
  ranger::ranger(data=x,dependent.variable.name="shadow.Boruta.decision",
   num.trees=num.trees,importance="permutation",
@@ -111,8 +134,9 @@ getImpRfRaw<-function(x,y,ntree=500,num.trees=ntree,...){
 comment(getImpRfRaw)<-'ranger raw permutation importance';
 
 
-##' @title Random Ferns importance
-##' @description This function is intended to be given to a \code{getImp} argument of \code{\link{Boruta}} function to be called by the Boruta algorithm as an importance source.
+##' Random Ferns importance
+##'
+##' This function is intended to be given to a \code{getImp} argument of \code{\link{Boruta}} function to be called by the Boruta algorithm as an importance source.
 ##' @param x data frame of predictors including shadows.
 ##' @param y response vector.
 ##' @param ... parameters passed to the underlying \code{\link[rFerns]{rFerns}} call; they are relayed from \code{...} of \code{\link{Boruta}}.

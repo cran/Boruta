@@ -1,5 +1,14 @@
+Changes in 5.1:
+       - Documentation fix. (Thanks to Andrew Slack-Smith for spotting
+       the problem)
+       - ranger VIM providers fixed to support survival problems. (Thanks
+       to James Iremonger for spotting this)
+       - Various documentation updates.
+       - Code and issues on GitHub.
+
+
 Changes in 5.0:
-       - ranger RF implementaion replaced randomForest in default
+       - ranger RF implementation replaced randomForest in default
        importance providers, bringing speed and parallel processing
        capabilities. Results should be the same, but there may be minor
        differances. Using getImp=getImpLegacyRfZ restores legacy

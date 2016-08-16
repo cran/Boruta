@@ -2,19 +2,19 @@
 # Author: Miron B. Kursa, based on the idea & original code by Witold R. Rudnicki
 ###############################################################################
 
-##' @name Boruta
 ##' @rdname Boruta
 ##' @export
 Boruta<-function(x,...)
  UseMethod("Boruta");
 
+##' Feature selection with the Boruta algorithm
+##'
+##' Boruta is an all relevant feature selection wrapper algorithm, capable of working with any classification method that output variable importance measure (VIM); by default, Boruta uses Random Forest.
+##' The method performs a top-down search for relevant features by comparing original attributes' importance with importance achievable at random, estimated using their permuted copies, and progressively elliminating irrelevant featurs to stabilise that test.
 ##' @rdname Boruta
-##' @title Important attribute search using Boruta algorithm
 ##' @method Boruta default
-##' @description Boruta is an all-relevant feature selection wrapper algorithm.
-##' It finds relevant features by comparing original attributes' importance with importance achievable at random, estimated using their permuted copies.
 ##' @param x data frame of predictors.
-##' @param y response vector; factor for classification, numeric vector for regression.
+##' @param y response vector; factor for classification, numeric vector for regression, \code{Surv} object for survival (supports depends on importance adapter capabilities).
 ##' @param getImp function used to obtain attribute importance.
 ##' The default is getImpRfZ, which runs random forest from the \code{ranger} package and gathers Z-scores of mean decrease accuracy measure.
 ##' It should return a numeric vector of a size identical to the number of columns of its first argument, containing importance measure of respective attributes.
@@ -30,21 +30,21 @@ Boruta<-function(x,...)
 ##' @param ... additional parameters passed to \code{getImp}.
 ##' @return An object of class \code{Boruta}, which is a list with the following components:
 ##' \item{finalDecision}{a factor of three value: \code{Confirmed}, \code{Rejected} or \code{Tentative}, containing final result of feature selection.}
-##' \item{ImpHistory}{a data frame of importances of attributes gathered in each importance source run.
-##' Beside predictors' importances, it contains maximal, mean and minimal importance of shadow attributes in each run.
+##' \item{ImpHistory}{a data frame of importance of attributes gathered in each importance source run.
+##' Beside predictors' importance, it contains maximal, mean and minimal importance of shadow attributes in each run.
 ##' Rejected attributes get \code{-Inf} importance.
 ##' Set to \code{NULL} if \code{holdHistory} was given \code{FALSE}.}
 ##' \item{timeTaken}{time taken by the computation.}
 ##' \item{impSource}{string describing the source of importance, equal to a comment attribute of the \code{getImp} argument.}
 ##' \item{call}{the original call of the \code{Boruta} function.}
-##' @details Boruta iteratively compares importances of attributes with importances of shadow attributes, created by shuffling original ones.
+##' @details Boruta iteratively compares importance of attributes with importance of shadow attributes, created by shuffling original ones.
 ##' Attributes that have significantly worst importance than shadow ones are being consecutively dropped.
 ##' On the other hand, attributes that are significantly better than shadows are admitted to be Confirmed.
 ##' Shadows are re-created in each iteration.
 ##' Algorithm stops when only Confirmed attributes are left, or when it reaches \code{maxRuns} importance source runs.
 ##' If the second scenario occurs, some attributes may be left without a decision.
 ##' They are claimed Tentative.
-##' You may try to extend \code{maxRuns} or lower \code{pValue} to clarify them, but in some cases their importances do fluctuate too much for Boruta to converge.
+##' You may try to extend \code{maxRuns} or lower \code{pValue} to clarify them, but in some cases their importance do fluctuate too much for Boruta to converge.
 ##' Instead, you can use \code{\link{TentativeRoughFix}} function, which will perform other, weaker test to make a final decision, or simply treat them as undecided in further analysis.
 ##' @note Version 5.0 and 2.0 change some name conventions and thus may be incompatible with scripts written for earlier Boruta versions.
 ##' Solutions of most problems of this kind should boil down to change of \code{ZScoreHistory} to \code{ImpHistory} in script source or Boruta object structure.
@@ -251,9 +251,10 @@ Boruta.formula<-function(formula,data=.GlobalEnv,...){
  return(ans);
 }
 
+##' Print Boruta object
+##'
+##' Print method for the Boruta objects.
 ##' @method print Boruta
-##' @title Print Boruta object
-##' @description print method for Boruta objects.
 ##' @param x an object of a class Boruta.
 ##' @param ... additional arguments passed to \code{\link{print}}.
 ##' @return Invisible copy of \code{x}.

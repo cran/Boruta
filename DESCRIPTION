@@ -1,21 +1,23 @@
 Package: Boruta
-Title: Wrapper Algorithm for All-Relevant Feature Selection
-Version: 5.0.0
+Title: Wrapper Algorithm for All Relevant Feature Selection
+Version: 5.1.0
 Depends: ranger
 Suggests: mlbench, rFerns, randomForest
-Authors@R: c(person(c("Miron","Bartosz"),"Kursa",role=c("aut","cre"),
+Authors@R: c(person(c("Miron","B."),"Kursa",role=c("aut","cre"),
                 email="M.Kursa@icm.edu.pl"),
-             person(c("Witold","Remigiusz"),"Rudnicki",role="aut"))
-Description: An all-relevant feature selection wrapper algorithm.
-        It finds relevant features by comparing original attributes'
-        importance with importance achievable at random, estimated
-        using their permuted copies.
+             person(c("Witold","R."),"Rudnicki",role="aut"))
+Description: An all relevant feature selection wrapper algorithm.
+    It finds relevant features by comparing original attributes'
+    importance with importance achievable at random, estimated
+    using their permuted copies.
+BugReports: https://github.com/mbq/Boruta/issues
 License: GPL (>= 2)
 URL: https://m2.icm.edu.pl/boruta/
+RoxygenNote: 5.0.1
 NeedsCompilation: no
-Packaged: 2015-09-13 11:53:23 UTC; mbq
-Author: Miron Bartosz Kursa [aut, cre],
-  Witold Remigiusz Rudnicki [aut]
-Maintainer: Miron Bartosz Kursa <M.Kursa@icm.edu.pl>
+Packaged: 2016-08-16 16:11:57 UTC; mbq
+Author: Miron B. Kursa [aut, cre],
+  Witold R. Rudnicki [aut]
+Maintainer: Miron B. Kursa <M.Kursa@icm.edu.pl>
 Repository: CRAN
-Date/Publication: 2015-09-13 19:32:33
+Date/Publication: 2016-08-16 19:46:03
