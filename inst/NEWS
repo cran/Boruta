@@ -1,3 +1,12 @@
+Changes in 5.2:
+       - New status messages, including proper grammar and a count of
+       still undecided attributes. (Thanks to Aristide Mooyaart for
+       suggesting this)
+       - Boruta to formula conversion functions (getConfirmedFormula,
+       getNonRejectedFormula) are back, after a silent disappearance
+       in the 2.0 version. (Thanks to Marco Niemann)
+       - Documentation fixes.
+
 Changes in 5.1:
        - Documentation fix. (Thanks to Andrew Slack-Smith for spotting
        the problem)
@@ -11,7 +20,7 @@ Changes in 5.0:
        - ranger RF implementation replaced randomForest in default
        importance providers, bringing speed and parallel processing
        capabilities. Results should be the same, but there may be minor
-       differances. Using getImp=getImpLegacyRfZ restores legacy
+       differences. Using getImp=getImpLegacyRfZ restores legacy
        behaviour. See ?getImpLegacyRf for a further discussion.
        - Names of columns in the attStats output changed to reflect the
        fact that Boruta may use arbitrary importance source.
@@ -59,6 +68,7 @@ Changes in 2.0:
         - ZScoreHistory is now ImpHistory; some scripts and old Boruta
         objects may become incompatible.
         - Documentation updates.
+        - Formulae export functions become private.
 
 
 Changes in 1.5:

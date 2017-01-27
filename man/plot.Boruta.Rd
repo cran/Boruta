@@ -29,7 +29,7 @@
 Invisible copy of \code{x}.
 }
 \description{
-Default plot method for Boruta objects, showing boxplots of attribute importance over run.
+Default plot method for Boruta objects, showing boxplots of attribute importances over run.
 }
 \note{
 If \code{col} is given and \code{sort} is \code{TRUE}, the \code{col} will be permuted, so that its order corresponds to attribute order in \code{ImpHistory}.

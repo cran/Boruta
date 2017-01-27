@@ -31,7 +31,7 @@ plotImpHistory(x, colCode = c("green", "yellow", "red", "blue"), col = NULL,
 Invisible copy of \code{x}.
 }
 \description{
-Alternative plot method for Boruta objects, showing matplot of attribute importance over run.
+Alternative plot method for Boruta objects, showing matplot of attribute importances over run.
 }
 \note{
 This function will throw an error when \code{x} lacks importance history, i.e., was made with \code{holdHistory} set to \code{FALSE}.

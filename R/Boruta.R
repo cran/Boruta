@@ -2,8 +2,8 @@
 # Author: Miron B. Kursa, based on the idea & original code by Witold R. Rudnicki
 ###############################################################################
 
-##' @rdname Boruta
 ##' @export
+##' @rdname Boruta
 Boruta<-function(x,...)
  UseMethod("Boruta");
 
@@ -30,21 +30,21 @@ Boruta<-function(x,...)
 ##' @param ... additional parameters passed to \code{getImp}.
 ##' @return An object of class \code{Boruta}, which is a list with the following components:
 ##' \item{finalDecision}{a factor of three value: \code{Confirmed}, \code{Rejected} or \code{Tentative}, containing final result of feature selection.}
-##' \item{ImpHistory}{a data frame of importance of attributes gathered in each importance source run.
-##' Beside predictors' importance, it contains maximal, mean and minimal importance of shadow attributes in each run.
+##' \item{ImpHistory}{a data frame of importances of attributes gathered in each importance source run.
+##' Beside predictors' importances, it contains maximal, mean and minimal importance of shadow attributes in each run.
 ##' Rejected attributes get \code{-Inf} importance.
 ##' Set to \code{NULL} if \code{holdHistory} was given \code{FALSE}.}
 ##' \item{timeTaken}{time taken by the computation.}
 ##' \item{impSource}{string describing the source of importance, equal to a comment attribute of the \code{getImp} argument.}
 ##' \item{call}{the original call of the \code{Boruta} function.}
-##' @details Boruta iteratively compares importance of attributes with importance of shadow attributes, created by shuffling original ones.
+##' @details Boruta iteratively compares importances of attributes with importances of shadow attributes, created by shuffling original ones.
 ##' Attributes that have significantly worst importance than shadow ones are being consecutively dropped.
 ##' On the other hand, attributes that are significantly better than shadows are admitted to be Confirmed.
 ##' Shadows are re-created in each iteration.
 ##' Algorithm stops when only Confirmed attributes are left, or when it reaches \code{maxRuns} importance source runs.
 ##' If the second scenario occurs, some attributes may be left without a decision.
 ##' They are claimed Tentative.
-##' You may try to extend \code{maxRuns} or lower \code{pValue} to clarify them, but in some cases their importance do fluctuate too much for Boruta to converge.
+##' You may try to extend \code{maxRuns} or lower \code{pValue} to clarify them, but in some cases their importances do fluctuate too much for Boruta to converge.
 ##' Instead, you can use \code{\link{TentativeRoughFix}} function, which will perform other, weaker test to make a final decision, or simply treat them as undecided in further analysis.
 ##' @note Version 5.0 and 2.0 change some name conventions and thus may be incompatible with scripts written for earlier Boruta versions.
 ##' Solutions of most problems of this kind should boil down to change of \code{ZScoreHistory} to \code{ImpHistory} in script source or Boruta object structure.
@@ -169,17 +169,30 @@ Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,holdHi
   toReject<-stats::p.adjust(stats::pbinom(hitReg,runs,0.5,lower.tail=TRUE),method=pAdjMethod)<pValue;
   (decReg=="Tentative" & toReject)->toReject;
 
-  #Trace the result
-  nAcc<-sum(toAccept);
-  if(doTrace>0 & nAcc>0)
-   message(sprintf("Confirmed %s attributes: %s",nAcc,.attListPrettyPrint(attNames[toAccept])));
-
-  nRej<-sum(toReject);
-  if(doTrace>0 & nRej>0)
-   message(sprintf("Rejected %s attributes: %s",nRej,.attListPrettyPrint(attNames[toReject])));
-
-  #Updating decReg
+  #Update decReg
   decReg[toAccept]<-"Confirmed";"Rejected"->decReg[toReject];
+
+  #Report progress
+  if(doTrace>0){
+   nAcc<-sum(toAccept);
+   nRej<-sum(toReject);
+   nLeft<-sum(decReg=="Tentative");
+   if(nAcc+nRej>0)
+    message(sprintf("After %s iterations, +%s: ",runs,format(difftime(Sys.time(),timeStart),digits=2)));
+   if(nAcc>0)
+    message(sprintf(" confirmed %s attribute%s: %s",
+     nAcc,ifelse(nAcc==1,'','s'),.attListPrettyPrint(attNames[toAccept])));
+   if(nRej>0)
+    message(sprintf(" rejected %s attribute%s: %s",
+     nRej,ifelse(nRej==1,'','s'),.attListPrettyPrint(attNames[toReject])));
+   if(nAcc+nRej>0)
+    if(nLeft>0){
+     message(sprintf(" still have %s attribute%s left.\n",
+      nLeft,ifelse(nLeft==1,'','s')));
+    }else{
+     if(nAcc+nRej>0) message(" no more attributes left.\n");
+    }
+  }
   return(decReg);
  }
 
@@ -225,8 +238,8 @@ Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,holdHi
 .attListPrettyPrint<-function(x,limit=5){
  x<-sort(x);
  if(length(x)<limit+1)
-  return(sprintf("%s.",paste(x,collapse=", ")));
- sprintf("%s and %s more.",paste(utils::head(x,limit),collapse=", "),length(x)-limit);
+  return(sprintf("%s;",paste(x,collapse=", ")));
+ sprintf("%s and %s more;",paste(utils::head(x,limit),collapse=", "),length(x)-limit);
 }
 
 ##' @rdname Boruta

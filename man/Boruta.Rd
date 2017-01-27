@@ -45,8 +45,8 @@ It is assumed that more important attributes get higher importance. +-Inf are ac
 \value{
 An object of class \code{Boruta}, which is a list with the following components:
 \item{finalDecision}{a factor of three value: \code{Confirmed}, \code{Rejected} or \code{Tentative}, containing final result of feature selection.}
-\item{ImpHistory}{a data frame of importance of attributes gathered in each importance source run.
-Beside predictors' importance, it contains maximal, mean and minimal importance of shadow attributes in each run.
+\item{ImpHistory}{a data frame of importances of attributes gathered in each importance source run.
+Beside predictors' importances, it contains maximal, mean and minimal importance of shadow attributes in each run.
 Rejected attributes get \code{-Inf} importance.
 Set to \code{NULL} if \code{holdHistory} was given \code{FALSE}.}
 \item{timeTaken}{time taken by the computation.}
@@ -58,14 +58,14 @@ Boruta is an all relevant feature selection wrapper algorithm, capable of workin
 The method performs a top-down search for relevant features by comparing original attributes' importance with importance achievable at random, estimated using their permuted copies, and progressively elliminating irrelevant featurs to stabilise that test.
 }
 \details{
-Boruta iteratively compares importance of attributes with importance of shadow attributes, created by shuffling original ones.
+Boruta iteratively compares importances of attributes with importances of shadow attributes, created by shuffling original ones.
 Attributes that have significantly worst importance than shadow ones are being consecutively dropped.
 On the other hand, attributes that are significantly better than shadows are admitted to be Confirmed.
 Shadows are re-created in each iteration.
 Algorithm stops when only Confirmed attributes are left, or when it reaches \code{maxRuns} importance source runs.
 If the second scenario occurs, some attributes may be left without a decision.
 They are claimed Tentative.
-You may try to extend \code{maxRuns} or lower \code{pValue} to clarify them, but in some cases their importance do fluctuate too much for Boruta to converge.
+You may try to extend \code{maxRuns} or lower \code{pValue} to clarify them, but in some cases their importances do fluctuate too much for Boruta to converge.
 Instead, you can use \code{\link{TentativeRoughFix}} function, which will perform other, weaker test to make a final decision, or simply treat them as undecided in further analysis.
 }
 \note{
