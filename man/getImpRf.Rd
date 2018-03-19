@@ -2,9 +2,9 @@
 % Please edit documentation in R/importance.R
 \name{getImpRf}
 \alias{getImpRf}
+\alias{getImpRfZ}
 \alias{getImpRfGini}
 \alias{getImpRfRaw}
-\alias{getImpRfZ}
 \title{ranger Random Forest importance adapters}
 \usage{
 getImpRfZ(x, y, ntree = 500, num.trees = ntree, ...)
@@ -31,4 +31,3 @@ Those function is intended to be given to a \code{getImp} argument of \code{\lin
 \note{
 Prior to Boruta 5.0, \code{getImpLegacyRfZ} function was a default importance source in Boruta; see \link{getImpLegacyRf} for more details.
 }
-

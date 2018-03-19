@@ -20,4 +20,3 @@ This function is intended to be given to a \code{getImp} argument of \code{\link
 Random Ferns importance calculation should be much faster than using Random Forest; however, one must first optimize the value of the \code{depth} parameter and
 it is quite likely that the number of ferns in the ensemble required for the importance to converge will be higher than the number of trees in case of Random Forest.
 }
-

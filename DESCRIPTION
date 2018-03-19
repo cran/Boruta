@@ -1,23 +1,32 @@
 Package: Boruta
 Title: Wrapper Algorithm for All Relevant Feature Selection
-Version: 5.2.0
+Version: 5.3.0
 Depends: ranger
-Suggests: mlbench, rFerns, randomForest
-Authors@R: c(person(c("Miron","Bartosz"),"Kursa",role=c("aut","cre"),
-                email="M.Kursa@icm.edu.pl"),
-             person(c("Witold","Remigiusz"),"Rudnicki",role="aut"))
+Suggests: mlbench, rFerns, randomForest, testthat, xgboost
+Authors@R: c(
+  person(
+   c("Miron","Bartosz"),"Kursa",
+   role=c("aut","cre"),
+   email="M.Kursa@icm.edu.pl",
+   comment=c(ORCID="0000-0001-7672-648X")
+  ),
+  person(
+   c("Witold","Remigiusz"),"Rudnicki",
+   role="aut"
+  )
+ )
 Description: An all relevant feature selection wrapper algorithm.
-    It finds relevant features by comparing original attributes'
-    importance with importance achievable at random, estimated
-    using their permuted copies.
+ It finds relevant features by comparing original attributes' importance with importance achievable at random, estimated using their permuted copies (shadows).
 BugReports: https://github.com/mbq/Boruta/issues
 License: GPL (>= 2)
-URL: https://m2.icm.edu.pl/boruta/
-RoxygenNote: 5.0.1
+URL: https://mbq.github.io/Boruta/
+RoxygenNote: 6.0.1.9000
+Encoding: UTF-8
 NeedsCompilation: no
-Packaged: 2017-01-26 14:56:57 UTC; mbq
-Author: Miron Bartosz Kursa [aut, cre],
+Packaged: 2018-03-19 16:10:28 UTC; mbq
+Author: Miron Bartosz Kursa [aut, cre]
+    (<https://orcid.org/0000-0001-7672-648X>),
   Witold Remigiusz Rudnicki [aut]
 Maintainer: Miron Bartosz Kursa <M.Kursa@icm.edu.pl>
 Repository: CRAN
-Date/Publication: 2017-01-27 10:17:32
+Date/Publication: 2018-03-19 16:25:05 UTC

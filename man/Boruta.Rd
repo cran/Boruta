@@ -73,56 +73,55 @@ Version 5.0 and 2.0 change some name conventions and thus may be incompatible wi
 Solutions of most problems of this kind should boil down to change of \code{ZScoreHistory} to \code{ImpHistory} in script source or Boruta object structure.
 }
 \examples{
-set.seed(777);
+set.seed(777)
 #Add some nonsense attributes to iris dataset by shuffling original attributes
-iris.extended<-data.frame(iris,apply(iris[,-5],2,sample));
-names(iris.extended)[6:9]<-paste("Nonsense",1:4,sep="");
+iris.extended<-data.frame(iris,apply(iris[,-5],2,sample))
+names(iris.extended)[6:9]<-paste("Nonsense",1:4,sep="")
 #Run Boruta on this data
 Boruta(Species~.,data=iris.extended,doTrace=2)->Boruta.iris.extended
 #Nonsense attributes should be rejected
-print(Boruta.iris.extended);
+print(Boruta.iris.extended)
 
 #Boruta using rFerns' importance
 Boruta(Species~.,data=iris.extended,getImp=getImpFerns)->Boruta.ferns.irisE
-print(Boruta.ferns.irisE);
+print(Boruta.ferns.irisE)
 
 \dontrun{
 #Boruta on the HouseVotes84 data from mlbench
-library(mlbench); data(HouseVotes84);
-na.omit(HouseVotes84)->hvo;
+library(mlbench); data(HouseVotes84)
+na.omit(HouseVotes84)->hvo
 #Takes some time, so be patient
-Boruta(Class~.,data=hvo,doTrace=2)->Bor.hvo;
-print(Bor.hvo);
-plot(Bor.hvo);
-plotImpHistory(Bor.hvo);
+Boruta(Class~.,data=hvo,doTrace=2)->Bor.hvo
+print(Bor.hvo)
+plot(Bor.hvo)
+plotImpHistory(Bor.hvo)
 }
 \dontrun{
 #Boruta on the Ozone data from mlbench
-library(mlbench); data(Ozone);
-library(randomForest);
-na.omit(Ozone)->ozo;
-Boruta(V4~.,data=ozo,doTrace=2)->Bor.ozo;
-cat('Random forest run on all attributes:\\n');
-print(randomForest(V4~.,data=ozo));
-cat('Random forest run only on confirmed attributes:\\n');
-print(randomForest(ozo[,getSelectedAttributes(Bor.ozo)],ozo$V4));
+library(mlbench); data(Ozone)
+library(randomForest)
+na.omit(Ozone)->ozo
+Boruta(V4~.,data=ozo,doTrace=2)->Bor.ozo
+cat('Random forest run on all attributes:\\n')
+print(randomForest(V4~.,data=ozo))
+cat('Random forest run only on confirmed attributes:\\n')
+print(randomForest(ozo[,getSelectedAttributes(Bor.ozo)],ozo$V4))
 }
 \dontrun{
 #Boruta on the Sonar data from mlbench
-library(mlbench); data(Sonar);
+library(mlbench); data(Sonar)
 #Takes some time, so be patient
-Boruta(Class~.,data=Sonar,doTrace=2)->Bor.son;
-print(Bor.son);
+Boruta(Class~.,data=Sonar,doTrace=2)->Bor.son
+print(Bor.son)
 #Shows important bands
-plot(Bor.son,sort=FALSE);
+plot(Bor.son,sort=FALSE)
 }
-}
-\author{
-Miron B. Kursa, based on the idea & original code by Witold R. Rudnicki.
 }
 \references{
 Miron B. Kursa, Witold R. Rudnicki (2010). Feature Selection with the Boruta Package.
 \emph{Journal of Statistical Software, 36(11)}, p. 1-13.
 URL: \url{http://www.jstatsoft.org/v36/i11/}
 }
-
+\author{
+Miron B. Kursa, based on the idea & original code by Witold R. Rudnicki.
+}

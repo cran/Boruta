@@ -41,4 +41,3 @@ and can lower the confidence of the final result.
 \author{
 Miron B. Kursa
 }
-

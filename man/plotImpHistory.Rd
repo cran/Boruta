@@ -38,14 +38,13 @@ This function will throw an error when \code{x} lacks importance history, i.e., 
 }
 \examples{
 \dontrun{
-library(mlbench); data(Sonar);
+library(mlbench); data(Sonar)
 #Takes some time, so be patient
-Boruta(Class~.,data=Sonar,doTrace=2)->Bor.son;
-print(Bor.son);
-plotImpHistory(Bor.son);
+Boruta(Class~.,data=Sonar,doTrace=2)->Bor.son
+print(Bor.son)
+plotImpHistory(Bor.son)
 }
 }
 \author{
 Miron B. Kursa
 }
-

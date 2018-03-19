@@ -20,4 +20,3 @@ Print method for the Boruta objects.
 \author{
 Miron B. Kursa
 }
-

@@ -38,15 +38,14 @@ This function will throw an error when \code{x} lacks importance history, i.e., 
 }
 \examples{
 \dontrun{
-library(mlbench); data(HouseVotes84);
-na.omit(HouseVotes84)->hvo;
+library(mlbench); data(HouseVotes84)
+na.omit(HouseVotes84)->hvo
 #Takes some time, so be patient
-Boruta(Class~.,data=hvo,doTrace=2)->Bor.hvo;
-print(Bor.hvo);
-plot(Bor.hvo);
+Boruta(Class~.,data=hvo,doTrace=2)->Bor.hvo
+print(Bor.hvo)
+plot(Bor.hvo)
 }
 }
 \author{
 Miron B. Kursa
 }
-

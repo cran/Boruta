@@ -22,4 +22,3 @@ Functions which convert the Boruta selection into a formula, so that it could be
 \note{
 This operation is possible only when Boruta selection was invoked using a formula interface.
 }
-
