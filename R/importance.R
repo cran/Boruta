@@ -1,6 +1,4 @@
-# Importance sources.
-# Author: Miron B. Kursa
-###############################################################################
+# Importance sources
 
 #' randomForest importance adapters
 #'
@@ -88,7 +86,7 @@ getImpRfZ<-function(x,y,ntree=500,num.trees=ntree,...){
    scale.permutation.importance=TRUE,
    write.forest=FALSE,...)$variable.importance)
  }
- #Abusing the fact that Boruta disallowes attributes with names
+ #Abusing the fact that Boruta disallows attributes with names
  # starting from "shadow"
  x$shadow.Boruta.decision<-y
  ranger::ranger(data=x,dependent.variable.name="shadow.Boruta.decision",
@@ -106,7 +104,6 @@ getImpRfGini<-function(x,y,ntree=500,num.trees=ntree,...){
  x$shadow.Boruta.decision<-y
  ranger::ranger(data=x,dependent.variable.name="shadow.Boruta.decision",
   num.trees=num.trees,importance="impurity",
-  respect.unordered.factors=TRUE,
   scale.permutation.importance=FALSE,
   write.forest=FALSE,...)$variable.importance
 }
@@ -127,11 +124,39 @@ getImpRfRaw<-function(x,y,ntree=500,num.trees=ntree,...){
  x$shadow.Boruta.decision<-y
  ranger::ranger(data=x,dependent.variable.name="shadow.Boruta.decision",
   num.trees=num.trees,importance="permutation",
-  respect.unordered.factors=TRUE,
   scale.permutation.importance=FALSE,
   write.forest=FALSE,...)$variable.importance
 }
 comment(getImpRfRaw)<-'ranger raw permutation importance'
+
+#' ranger Extra-trees importance adapters
+#'
+#' Those function is intended to be given to a \code{getImp} argument of \code{\link{Boruta}} function to be called by the Boruta algorithm as an importance source.
+#' \code{getImpExtraZ} generates default, normalized permutation importance, \code{getImpExtraRaw} raw permutation importance, finally \code{getImpExtraGini} generates Gini impurity importance.
+#' @name getImpExtra
+#' @rdname getImpExtra
+#' @aliases getImpExtraZ getImpExtraGini getImpExtraRaw
+#' @param x data frame of predictors including shadows.
+#' @param y response vector.
+#' @param ntree  Number of trees in the forest; copied into \code{\link{ranger}}'s native num.trees, put to retain transparent compatibility with randomForest.
+#' @param num.trees  Number of trees in the forest, as according to \code{\link{ranger}}'s nomenclature. If not given, set to \code{ntree} value. If both are given, \code{num.trees} takes precedence.
+#' @param ... parameters passed to the underlying \code{\link{ranger}} call; they are relayed from \code{...} of \code{\link{Boruta}}. Note that these function work just by setting \code{splitrule} to \code{"extratrees"}.
+#' @export
+getImpExtraZ<-function(x,y,ntree=500,num.trees=ntree,...)
+ getImpRfZ(x,y,ntree=ntree,splitrule="extratrees",...)
+comment(getImpExtraZ)<-'ranger normalized permutation importance'
+
+#' @rdname getImpExtra
+#' @export
+getImpExtraGini<-function(x,y,ntree=500,num.trees=ntree,...)
+ getImpRfGini(x,y,ntree=ntree,splitrule="extratrees",...)
+comment(getImpExtraGini)<-'ranger extra-trees Gini index importance'
+
+#' @rdname getImpExtra
+#' @export
+getImpExtraRaw<-function(x,y,ntree=500,num.trees=ntree,...)
+ getImpRfRaw(x,y,ntree=ntree,splitrule="extratrees",...)
+comment(getImpExtraRaw)<-'ranger extra-trees raw permutation importance'
 
 
 #' Random Ferns importance
@@ -158,7 +183,7 @@ comment(getImpFerns)<-'rFerns importance'
 #' @param nrounds Number of rounds; passed to the underlying \code{\link[xgboost]{xgboost}} call.
 #' @param verbose Verbosity level of xgboost; either 0 (silent) or 1 (progress reports). Passed to the underlying \code{\link[xgboost]{xgboost}} call.
 #' @param ... other parameters passed to the underlying \code{\link[xgboost]{xgboost}} call.
-#' Similarly as \code{nrounds} and \code{verbose}, they are relayed from \code{...} of \code{\link{Boruta}}. 
+#' Similarly as \code{nrounds} and \code{verbose}, they are relayed from \code{...} of \code{\link{Boruta}}.
 #' For convenience, this function sets \code{nrounds} to 5 and verbose to 0, but this can be overridden.
 #' @note Only dense matrix interface is supported; all predictions given to \code{\link{Boruta}} call have to be numeric (not integer).
 #' Categorical features should be split into indicator attributes.

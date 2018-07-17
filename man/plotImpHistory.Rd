@@ -45,6 +45,3 @@ print(Bor.son)
 plotImpHistory(Bor.son)
 }
 }
-\author{
-Miron B. Kursa
-}

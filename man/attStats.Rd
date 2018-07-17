@@ -32,6 +32,3 @@ print(stats)
 plot(normHits~meanImp,col=stats$decision,data=stats)
 }
 }
-\author{
-Miron B. Kursa
-}

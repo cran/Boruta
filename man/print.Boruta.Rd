@@ -17,6 +17,3 @@ Invisible copy of \code{x}.
 \description{
 Print method for the Boruta objects.
 }
-\author{
-Miron B. Kursa
-}

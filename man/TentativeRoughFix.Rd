@@ -38,6 +38,3 @@ and can lower the confidence of the final result.
 \code{x} has to be made with \code{holdHistory} set to
 \code{TRUE} for this code to run.
 }
-\author{
-Miron B. Kursa
-}

@@ -26,6 +26,3 @@ print(Bor.iris)
 print(getSelectedAttributes(Bor.iris))
 }
 }
-\author{
-Miron B. Kursa
-}

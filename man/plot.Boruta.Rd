@@ -46,6 +46,3 @@ print(Bor.hvo)
 plot(Bor.hvo)
 }
 }
-\author{
-Miron B. Kursa
-}

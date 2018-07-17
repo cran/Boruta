@@ -27,7 +27,7 @@ Boruta(x, ...)
 \item{maxRuns}{maximal number of importance source runs.
 You may increase it to resolve attributes left Tentative.}
 
-\item{doTrace}{verbosity level. 0 means no tracing, 1 means reporting decision about each attribute as soon as it is justified, 2 means same as 1, plus reporting each importance source run.}
+\item{doTrace}{verbosity level. 0 means no tracing, 1 means reporting decision about each attribute as soon as it is justified, 2 means the same as 1, plus reporting each importance source run, 3 means the same as 2, plus reporting of hits assigned to yet undecided attributes.}
 
 \item{holdHistory}{if set to \code{TRUE}, the full history of importance is stored and returned as the \code{ImpHistory} element of the result.
 Can be used to decrease a memory footprint of Boruta in case this side data is not used, especially when the number of attributes is huge; yet it disables plotting of such made \code{Boruta} objects and the use of the \code{\link{TentativeRoughFix}} function.}
@@ -55,7 +55,7 @@ Set to \code{NULL} if \code{holdHistory} was given \code{FALSE}.}
 }
 \description{
 Boruta is an all relevant feature selection wrapper algorithm, capable of working with any classification method that output variable importance measure (VIM); by default, Boruta uses Random Forest.
-The method performs a top-down search for relevant features by comparing original attributes' importance with importance achievable at random, estimated using their permuted copies, and progressively elliminating irrelevant featurs to stabilise that test.
+The method performs a top-down search for relevant features by comparing original attributes' importance with importance achievable at random, estimated using their permuted copies, and progressively eliminating irrelevant features to stabilise that test.
 }
 \details{
 Boruta iteratively compares importances of attributes with importances of shadow attributes, created by shuffling original ones.
@@ -67,10 +67,6 @@ If the second scenario occurs, some attributes may be left without a decision.
 They are claimed Tentative.
 You may try to extend \code{maxRuns} or lower \code{pValue} to clarify them, but in some cases their importances do fluctuate too much for Boruta to converge.
 Instead, you can use \code{\link{TentativeRoughFix}} function, which will perform other, weaker test to make a final decision, or simply treat them as undecided in further analysis.
-}
-\note{
-Version 5.0 and 2.0 change some name conventions and thus may be incompatible with scripts written for earlier Boruta versions.
-Solutions of most problems of this kind should boil down to change of \code{ZScoreHistory} to \code{ImpHistory} in script source or Boruta object structure.
 }
 \examples{
 set.seed(777)
@@ -121,7 +117,4 @@ plot(Bor.son,sort=FALSE)
 Miron B. Kursa, Witold R. Rudnicki (2010). Feature Selection with the Boruta Package.
 \emph{Journal of Statistical Software, 36(11)}, p. 1-13.
 URL: \url{http://www.jstatsoft.org/v36/i11/}
-}
-\author{
-Miron B. Kursa, based on the idea & original code by Witold R. Rudnicki.
 }
