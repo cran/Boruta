@@ -8,8 +8,9 @@
 \usage{
 Boruta(x, ...)
 
-\method{Boruta}{default}(x, y, pValue = 0.01, mcAdj = TRUE, maxRuns = 100,
-  doTrace = 0, holdHistory = TRUE, getImp = getImpRfZ, ...)
+\method{Boruta}{default}(x, y, pValue = 0.01, mcAdj = TRUE,
+  maxRuns = 100, doTrace = 0, holdHistory = TRUE,
+  getImp = getImpRfZ, ...)
 
 \method{Boruta}{formula}(formula, data = .GlobalEnv, ...)
 }
