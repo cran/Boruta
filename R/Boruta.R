@@ -2,8 +2,8 @@
 
 #' @export
 #' @rdname Boruta
-Boruta<-function(x,...)
- UseMethod("Boruta")
+Boruta <- function(x, ...)
+  UseMethod("Boruta")
 
 #' Feature selection with the Boruta algorithm
 #'
@@ -92,66 +92,91 @@ Boruta<-function(x,...)
 #' #Shows important bands
 #' plot(Bor.son,sort=FALSE)
 #' }
-Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,holdHistory=TRUE,getImp=getImpRfZ,...){
- #Timer starts... now!
- timeStart<-Sys.time()
-
- #Extract the call to store in output
- cl<-match.call()
- cl[[1]]<-as.name('Boruta')
-
- #Convert x into a data.frame
- if(!is.data.frame(x))
-  x<-data.frame(x)
-
- ##Some checks on x & y
- if(length(grep('^shadow',names(x)))>0)
-  stop('Attributes with names starting from "shadow" are reserved for internal use. Please rename them.')
- if(any(c(is.na(x),is.na(y))))
-  stop('Cannot process NAs in input. Please remove them.')
- if(maxRuns<11)
-  stop('maxRuns must be greater than 10.')
-
-
- ##Creating some useful constants
- nAtt<-ncol(x); nrow(x)->nObjects
- attNames<-names(x); c("Tentative","Confirmed","Rejected")->confLevels
-
- ##Initiate state
- decReg<-factor(rep("Tentative",nAtt),levels=confLevels)
- hitReg<-rep(0,nAtt);names(hitReg)<-attNames
- impHistory<-list()
- runs<-0
-
- ##Main loop
-
- while(any(decReg=="Tentative") && (runs+1->runs)<maxRuns){
-  curImp<-addShadowsAndGetImp(decReg,runs,x,y,getImp,doTrace,...)
-  hitReg<-assignHits(hitReg,curImp,doTrace)
-  decReg<-doTests(decReg,hitReg,runs,mcAdj,pValue,doTrace,timeStart)
-
-  #If needed, update impHistory with scores obtained in this iteration
-  if(holdHistory){
-   imp<-c(curImp$imp,
-    shadowMax=max(curImp$shaImp),
-    shadowMean=mean(curImp$shaImp),
-    shadowMin=min(curImp$shaImp))
-   impHistory<-c(impHistory,list(imp))
+Boruta.default <-
+  function(x,
+           y,
+           pValue = 0.01,
+           mcAdj = TRUE,
+           maxRuns = 100,
+           doTrace = 0,
+           holdHistory = TRUE,
+           getImp = getImpRfZ,
+           ...) {
+    #Timer starts... now!
+    timeStart <- Sys.time()
+    
+    #Extract the call to store in output
+    cl <- match.call()
+    cl[[1]] <- as.name('Boruta')
+    
+    #Convert x into a data.frame
+    if (!is.data.frame(x))
+      x <- data.frame(x)
+    
+    ##Some checks on x & y
+    if (length(grep('^shadow', names(x))) > 0)
+      stop(
+        'Attributes with names starting from "shadow" are reserved for internal use. Please rename them.'
+      )
+    if (any(c(is.na(x), is.na(y))))
+      stop('Cannot process NAs in input. Please remove them.')
+    if (maxRuns < 11)
+      stop('maxRuns must be greater than 10.')
+    
+    
+    ##Creating some useful constants
+    nAtt <- ncol(x)
+    nrow(x) -> nObjects
+    attNames <-
+      names(x)
+    c("Tentative", "Confirmed", "Rejected") -> confLevels
+    
+    ##Initiate state
+    decReg <- factor(rep("Tentative", nAtt), levels = confLevels)
+    hitReg <- rep(0, nAtt)
+    names(hitReg) <- attNames
+    impHistory <- list()
+    runs <- 0
+    
+    ##Main loop
+    
+    while (any(decReg == "Tentative") && (runs + 1 -> runs) < maxRuns) {
+      curImp <- addShadowsAndGetImp(decReg, runs, x, y, getImp, doTrace, ...)
+      hitReg <- assignHits(hitReg, curImp, doTrace)
+      decReg <- doTests(decReg, hitReg, runs, mcAdj, pValue, doTrace, timeStart)
+      
+      #If needed, update impHistory with scores obtained in this iteration
+      if (holdHistory) {
+        imp <- c(
+          curImp$imp,
+          shadowMax = max(curImp$shaImp),
+          shadowMean = mean(curImp$shaImp),
+          shadowMin = min(curImp$shaImp)
+        )
+        impHistory <- c(impHistory, list(imp))
+      }
+    }
+    
+    ##Building result
+    impHistory <- do.call(rbind, impHistory)
+    names(decReg) <- attNames
+    ans <- list(
+      finalDecision = decReg,
+      ImpHistory = impHistory,
+      pValue = pValue,
+      maxRuns = maxRuns,
+      light = TRUE,
+      mcAdj = mcAdj,
+      timeTaken = Sys.time() - timeStart,
+      roughfixed = FALSE,
+      call = cl,
+      impSource = comment(getImp),
+      hits = hitReg
+    )
+    
+    "Boruta" -> class(ans)
+    return(ans)
   }
- }
-
- ##Building result
- impHistory<-do.call(rbind,impHistory)
- names(decReg)<-attNames
- ans<-list(finalDecision=decReg,ImpHistory=impHistory,
-   pValue=pValue,maxRuns=maxRuns,light=TRUE,mcAdj=mcAdj,
-   timeTaken=Sys.time()-timeStart,roughfixed=FALSE,call=cl,
-   impSource=comment(getImp),
-   hits=hitReg)
-
- "Boruta"->class(ans)
- return(ans)
-}
 
 #' Resume feature selection from Boruta object.
 #' 
@@ -189,81 +214,113 @@ Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,holdHi
 #' #Last nonsense attribute shoudl be confirmed important.
 #' print(Boruta.iris.extended)
 #' print(Boruta.iris.extended2)
-ResumeBoruta <- function(x,y,priorBoruta,maxAdditionalRuns=10,numPriorRuns=nrow(priorBoruta$ImpHistory),pValue=0.01,mcAdj=TRUE,doTrace=0,holdHistory=TRUE,getImp=getImpRfZ,...) {
-  if(class(priorBoruta)!='Boruta') stop("This is NOT a Boruta object!")
-  if(!("hits" %in% names(priorBoruta))) stop("Sorry, Boruta resume ony works with Boruta objects that include hits.")
-  if(priorBoruta$roughfixed) warning("Boruta resume should only be run on Boruta objects prior to rough fix.")
-  
-  #Timer starts... now!
-  timeStart<-Sys.time()
-  
-  #Convert x into a data.frame
-  if(!is.data.frame(x))
-    x<-data.frame(x)
-  
-  ##Some checks on x & y
-  if(length(grep('^shadow',names(x)))>0)
-    stop('Attributes with names starting from "shadow" are reserved for internal use. Please rename them.')
-  if(any(c(is.na(x),is.na(y))))
-    stop('Cannot process NAs in input. Please remove them.')
-  if(ncol(x) != length(priorBoruta$finalDecision)) 
-    stop('Cannot resume with data containing different columns.')
-  if(!all(colnames(x) == names(priorBoruta$finalDecision)))
-    stop('Cannot resume with data containing different columns.')
-  
-  #Creating some useful constants
-  nAtt<-ncol(x); nrow(x)->nObjects
-  attNames<-names(x); c("Tentative","Confirmed","Rejected")->confLevels
-  
-  decReg<-priorBoruta$finalDecision
-  hitReg<-priorBoruta$hits
-  impHistory<-priorBoruta$ImpHistory
-  
-  if(is.null(numPriorRuns)) {
-    runs<-priorBoruta$maxRuns
-  } else {
-    runs<-numPriorRuns
-  }
-  
-  maxRuns<-runs+maxAdditionalRuns
-  
-  ##Main loop
-  
-  while(any(decReg=="Tentative") && (runs+1->runs)<maxRuns){
-    curImp<-addShadowsAndGetImp(decReg,runs,x,y,getImp,doTrace,...)
-    hitReg<-assignHits(hitReg,curImp,doTrace)
-    decReg<-doTests(decReg,hitReg,runs,mcAdj,pValue,doTrace,timeStart)
+ResumeBoruta <-
+  function(x,
+           y,
+           priorBoruta,
+           maxAdditionalRuns = 10,
+           numPriorRuns = nrow(priorBoruta$ImpHistory),
+           pValue = 0.01,
+           mcAdj = TRUE,
+           doTrace = 0,
+           holdHistory = TRUE,
+           getImp = getImpRfZ,
+           ...) {
+    if (class(priorBoruta) != 'Boruta')
+      stop("This is NOT a Boruta object!")
+    if (!("hits" %in% names(priorBoruta)))
+      stop("Sorry, Boruta resume ony works with Boruta objects that include hits.")
+    if (priorBoruta$roughfixed)
+      warning("Boruta resume should only be run on Boruta objects prior to rough fix.")
     
-    #If needed, update impHistory with scores obtained in this iteration
-    if(holdHistory){
-      imp<-c(curImp$imp,
-             shadowMax=max(curImp$shaImp),
-             shadowMean=mean(curImp$shaImp),
-             shadowMin=min(curImp$shaImp))
-      #impHistory<-c(impHistory,list(imp))
-      impHistory<-rbind(impHistory, imp)
+    #Timer starts... now!
+    timeStart <- Sys.time()
+    
+    #Convert x into a data.frame
+    if (!is.data.frame(x))
+      x <- data.frame(x)
+    
+    ##Some checks on x & y
+    if (length(grep('^shadow', names(x))) > 0)
+      stop(
+        'Attributes with names starting from "shadow" are reserved for internal use. Please rename them.'
+      )
+    if (any(c(is.na(x), is.na(y))))
+      stop('Cannot process NAs in input. Please remove them.')
+    if (ncol(x) != length(priorBoruta$finalDecision))
+      stop('Cannot resume with data containing different columns.')
+    if (!all(colnames(x) == names(priorBoruta$finalDecision)))
+      stop('Cannot resume with data containing different columns.')
+    
+    #Creating some useful constants
+    nAtt <- ncol(x)
+    nrow(x) -> nObjects
+    attNames <-
+      names(x)
+    c("Tentative", "Confirmed", "Rejected") -> confLevels
+    
+    decReg <- priorBoruta$finalDecision
+    hitReg <- priorBoruta$hits
+    impHistory <- priorBoruta$ImpHistory
+    
+    if (is.null(numPriorRuns)) {
+      runs <- priorBoruta$maxRuns
+    } else {
+      runs <- numPriorRuns
     }
+    
+    maxRuns <- runs + maxAdditionalRuns
+    
+    ##Main loop
+    
+    while (any(decReg == "Tentative") && (runs + 1 -> runs) < maxRuns) {
+      curImp <- addShadowsAndGetImp(decReg, runs, x, y, getImp, doTrace, ...)
+      hitReg <- assignHits(hitReg, curImp, doTrace)
+      decReg <-
+        doTests(decReg, hitReg, runs, mcAdj, pValue, doTrace, timeStart)
+      
+      #If needed, update impHistory with scores obtained in this iteration
+      if (holdHistory) {
+        imp <- c(
+          curImp$imp,
+          shadowMax = max(curImp$shaImp),
+          shadowMean = mean(curImp$shaImp),
+          shadowMin = min(curImp$shaImp)
+        )
+        #impHistory<-c(impHistory,list(imp))
+        impHistory <- rbind(impHistory, imp)
+      }
+    }
+    
+    ##Building result
+    # impHistory<-do.call(rbind,impHistory)
+    names(decReg) <- attNames
+    ans <- list(
+      finalDecision = decReg,
+      ImpHistory = impHistory,
+      pValue = pValue,
+      maxRuns = maxRuns,
+      light = TRUE,
+      mcAdj = mcAdj,
+      timeTaken = Sys.time() - timeStart + priorBoruta$timeTaken,
+      roughfixed = FALSE,
+      call = priorBoruta$call,
+      impSource = comment(getImp),
+      hits = hitReg
+    )
+    
+    "Boruta" -> class(ans)
+    return(ans)
+    
   }
-  
-  ##Building result
-  # impHistory<-do.call(rbind,impHistory)
-  names(decReg)<-attNames
-  ans<-list(finalDecision=decReg,ImpHistory=impHistory,
-            pValue=pValue,maxRuns=maxRuns,light=TRUE,mcAdj=mcAdj,
-            timeTaken=Sys.time()-timeStart+priorBoruta$timeTaken,roughfixed=FALSE,call=priorBoruta$call,
-            impSource=comment(getImp),
-            hits=hitReg)
-  
-  "Boruta"->class(ans)
-  return(ans)
-  
-}
 
-.attListPrettyPrint<-function(x,limit=5){
- x<-sort(x)
- if(length(x)<limit+1)
-  return(sprintf("%s;",paste(x,collapse=", ")))
- sprintf("%s and %s more;",paste(utils::head(x,limit),collapse=", "),length(x)-limit)
+.attListPrettyPrint <- function(x, limit = 5) {
+  x <- sort(x)
+  if (length(x) < limit + 1)
+    return(sprintf("%s;", paste(x, collapse = ", ")))
+  sprintf("%s and %s more;",
+          paste(utils::head(x, limit), collapse = ", "),
+          length(x) - limit)
 }
 
 #' @rdname Boruta
@@ -271,21 +328,22 @@ ResumeBoruta <- function(x,y,priorBoruta,maxAdditionalRuns=10,numPriorRuns=nrow(
 #' @param formula alternatively, formula describing model to be analysed.
 #' @param data in which to interpret formula.
 #' @export
-Boruta.formula<-function(formula,data=.GlobalEnv,...){
- ##Grab and interpret the formula
- stats::terms.formula(formula,data=data)->t
- x<-eval(attr(t,"variables"),data)
- apply(attr(t,"factors"),1,sum)>0->sel
- nam<-rownames(attr(t,"factors"))[sel]
- data.frame(x[sel])->df;names(df)<-nam
- x[[attr(t,"response")]]->dec
-
- ##Run Boruta
- ans<-Boruta.default(df,dec,...)
- ans$call<-match.call()
- ans$call[[1]]<-as.name('Boruta')
- formula->ans$call[["formula"]]
- return(ans)
+Boruta.formula <- function(formula, data = .GlobalEnv, ...) {
+  ##Grab and interpret the formula
+  stats::terms.formula(formula, data = data) -> t
+  x <- eval(attr(t, "variables"), data)
+  apply(attr(t, "factors"), 1, sum) > 0 -> sel
+  nam <- rownames(attr(t, "factors"))[sel]
+  data.frame(x[sel]) -> df
+  names(df) <- nam
+  x[[attr(t, "response")]] -> dec
+  
+  ##Run Boruta
+  ans <- Boruta.default(df, dec, ...)
+  ans$call <- match.call()
+  ans$call[[1]] <- as.name('Boruta')
+  formula -> ans$call[["formula"]]
+  return(ans)
 }
 
 #' Print Boruta object
@@ -296,114 +354,193 @@ Boruta.formula<-function(formula,data=.GlobalEnv,...){
 #' @param ... additional arguments passed to \code{\link{print}}.
 #' @return Invisible copy of \code{x}.
 #' @export
-print.Boruta<-function(x,...){
- if(class(x)!='Boruta') stop("This is NOT a Boruta object!")
- cat(paste('Boruta performed ',dim(x$ImpHistory)[1],' iterations in ',format(x$timeTaken),'.\n',sep=''))
- if(x$roughfixed) cat(paste('Tentatives roughfixed over the last ',x$averageOver,' iterations.\n',sep=''))
- if(sum(x$finalDecision=='Confirmed')==0){
-  cat(' No attributes deemed important.\n')} else {
-  writeLines(strwrap(paste(sum(x$finalDecision=='Confirmed'),' attributes confirmed important: ',
-   .attListPrettyPrint(names(x$finalDecision[x$finalDecision=='Confirmed']))),indent=1))
- }
- if(sum(x$finalDecision=='Rejected')==0){
-  cat(' No attributes deemed unimportant.\n')} else {
-  writeLines(strwrap(paste(sum(x$finalDecision=='Rejected'),' attributes confirmed unimportant: ',
-   .attListPrettyPrint(names(x$finalDecision[x$finalDecision=='Rejected']))),indent=1))
- }
- if(sum(x$finalDecision=='Tentative')!=0){
-  writeLines(strwrap(paste(sum(x$finalDecision=='Tentative'),' tentative attributes left: ',
-   .attListPrettyPrint(names(x$finalDecision[x$finalDecision=='Tentative']))),indent=1))
- }
- invisible(x)
+print.Boruta <- function(x, ...) {
+  if (class(x) != 'Boruta')
+    stop("This is NOT a Boruta object!")
+  cat(paste(
+    'Boruta performed ',
+    dim(x$ImpHistory)[1],
+    ' iterations in ',
+    format(x$timeTaken),
+    '.\n',
+    sep = ''
+  ))
+  if (x$roughfixed)
+    cat(
+      paste(
+        'Tentatives roughfixed over the last ',
+        x$averageOver,
+        ' iterations.\n',
+        sep = ''
+      )
+    )
+  if (sum(x$finalDecision == 'Confirmed') == 0) {
+    cat(' No attributes deemed important.\n')
+  } else {
+    writeLines(strwrap(
+      paste(
+        sum(x$finalDecision == 'Confirmed'),
+        ' attributes confirmed important: ',
+        .attListPrettyPrint(names(x$finalDecision[x$finalDecision == 'Confirmed']))
+      ),
+      indent = 1
+    ))
+  }
+  if (sum(x$finalDecision == 'Rejected') == 0) {
+    cat(' No attributes deemed unimportant.\n')
+  } else {
+    writeLines(strwrap(
+      paste(
+        sum(x$finalDecision == 'Rejected'),
+        ' attributes confirmed unimportant: ',
+        .attListPrettyPrint(names(x$finalDecision[x$finalDecision == 'Rejected']))
+      ),
+      indent = 1
+    ))
+  }
+  if (sum(x$finalDecision == 'Tentative') != 0) {
+    writeLines(strwrap(
+      paste(
+        sum(x$finalDecision == 'Tentative'),
+        ' tentative attributes left: ',
+        .attListPrettyPrint(names(x$finalDecision[x$finalDecision == 'Tentative']))
+      ),
+      indent = 1
+    ))
+  }
+  invisible(x)
 }
 
 ##Expands the information system with newly built random attributes and calculates importance
-addShadowsAndGetImp<-function(decReg,runs,x,y,getImp,doTrace,...){
+addShadowsAndGetImp <- function(decReg, runs, x, y, getImp, doTrace, ...) {
   #xSha is going to be a data frame with shadow attributes; time to init it.
-  xSha<-x[,decReg!="Rejected",drop=F]
-  while(dim(xSha)[2]<5) xSha<-cbind(xSha,xSha); #There must be at least 5 random attributes.
+  xSha <- x[, decReg != "Rejected", drop = F]
+  while (dim(xSha)[2] < 5)
+    xSha <-
+      cbind(xSha, xSha)
+  #There must be at least 5 random attributes.
   
   #Now, we permute values in each attribute
-  nSha<-ncol(xSha)
-  data.frame(lapply(xSha,sample))->xSha
-  names(xSha)<-paste('shadow',1:nSha,sep="")
+  nSha <- ncol(xSha)
+  data.frame(lapply(xSha, sample)) -> xSha
+  names(xSha) <- paste('shadow', 1:nSha, sep = "")
   
   #Notifying user of our progress
-  if(doTrace>1)
-    message(sprintf(' %s. run of importance source...',runs))
+  if (doTrace > 1)
+    message(sprintf(' %s. run of importance source...', runs))
   
   #Calling importance source; "..." can be used by the user to pass rf attributes (for instance ntree)
-  impRaw<-getImp(cbind(x[,decReg!="Rejected"],xSha),y,...)
-  if(!is.numeric(impRaw))
+  impRaw <- getImp(cbind(x[, decReg != "Rejected"], xSha), y, ...)
+  if (!is.numeric(impRaw))
     stop("getImp result is not a numeric vector. Please check the given getImp function.")
-  if(length(impRaw)!=sum(decReg!="Rejected")+ncol(xSha))
+  if (length(impRaw) != sum(decReg != "Rejected") + ncol(xSha))
     stop("getImp result has a wrong length. Please check the given getImp function.")
-  if(any(is.na(impRaw)|is.nan(impRaw))){
-    impRaw[is.na(impRaw)|is.nan(impRaw)]<-0
+  if (any(is.na(impRaw) | is.nan(impRaw))) {
+    impRaw[is.na(impRaw) | is.nan(impRaw)] <- 0
     warning("getImp result contains NA(s) or NaN(s); replacing with 0(s), yet this is suspicious.")
   }
   
   #Importance must have Rejected attributes put on place and filled with -Infs
-  nAtt<-ncol(x)
-  attNames<-names(x)
-  imp<-rep(-Inf,nAtt+nSha);names(imp)<-c(attNames,names(xSha))
-  impRaw->imp[c(decReg!="Rejected",rep(TRUE,nSha))]
-  shaImp<-imp[(nAtt+1):length(imp)];imp[1:nAtt]->imp
+  nAtt <- ncol(x)
+  attNames <- names(x)
+  imp <- rep(-Inf, nAtt + nSha)
+  names(imp) <- c(attNames, names(xSha))
+  impRaw -> imp[c(decReg != "Rejected", rep(TRUE, nSha))]
+  shaImp <- imp[(nAtt + 1):length(imp)]
+  imp[1:nAtt] -> imp
   
-  return(list(imp=imp,shaImp=shaImp))
+  return(list(imp = imp, shaImp = shaImp))
 }
 
 ##Assigns hits
-assignHits<-function(hitReg,curImp,doTrace){
-  curImp$imp>max(curImp$shaImp)->hits
-  if(doTrace>2){
-    uncMask<-decReg=="Tentative"
-    intHits<-sum(hits[uncMask])
-    if(intHits>0)
-      message(sprintf("Assigned hit to %s attribute%s out of %s undecided.",sum(hits[uncMask]),if(intHits==1) "" else "s",sum(uncMask)))
+assignHits <- function(hitReg, curImp, doTrace) {
+  curImp$imp > max(curImp$shaImp) -> hits
+  if (doTrace > 2) {
+    uncMask <- decReg == "Tentative"
+    intHits <- sum(hits[uncMask])
+    if (intHits > 0)
+      message(
+        sprintf(
+          "Assigned hit to %s attribute%s out of %s undecided.",
+          sum(hits[uncMask]),
+          if (intHits == 1)
+            ""
+          else
+            "s",
+          sum(uncMask)
+        )
+      )
     else
       message("None of undecided attributes scored a hit.")
   }
-  hitReg[hits]<-hitReg[hits]+1
+  hitReg[hits] <- hitReg[hits] + 1
   return(hitReg)
 }
 
 ##Checks whether number of hits is significant
-doTests<-function(decReg,hitReg,runs,mcAdj,pValue,doTrace,timeStart){
-  pAdjMethod<-ifelse(mcAdj[1],'bonferroni','none')
-  #If attribute is significantly more frequent better than shadowMax, its claimed Confirmed
-  toAccept<-stats::p.adjust(stats::pbinom(hitReg-1,runs,0.5,lower.tail=FALSE),method=pAdjMethod)<pValue
-  (decReg=="Tentative" & toAccept)->toAccept
-  
-  #If attribute is significantly more frequent worse than shadowMax, its claimed Rejected (=irrelevant)
-  toReject<-stats::p.adjust(stats::pbinom(hitReg,runs,0.5,lower.tail=TRUE),method=pAdjMethod)<pValue
-  (decReg=="Tentative" & toReject)->toReject
-  
-  #Update decReg
-  decReg[toAccept]<-"Confirmed";"Rejected"->decReg[toReject]
-  
-  #Report progress
-  if(doTrace>0){
-    names(hitReg)->attNames
-    nAcc<-sum(toAccept)
-    nRej<-sum(toReject)
-    nLeft<-sum(decReg=="Tentative")
-    if(nAcc+nRej>0)
-      message(sprintf("After %s iterations, +%s: ",runs,format(difftime(Sys.time(),timeStart),digits=2)))
-    if(nAcc>0)
-      message(sprintf(" confirmed %s attribute%s: %s",
-                      nAcc,ifelse(nAcc==1,'','s'),.attListPrettyPrint(attNames[toAccept])))
-    if(nRej>0)
-      message(sprintf(" rejected %s attribute%s: %s",
-                      nRej,ifelse(nRej==1,'','s'),.attListPrettyPrint(attNames[toReject])))
-    if(nAcc+nRej>0)
-      if(nLeft>0){
-        message(sprintf(" still have %s attribute%s left.\n",
-                        nLeft,ifelse(nLeft==1,'','s')))
-      }else{
-        if(nAcc+nRej>0) message(" no more attributes left.\n")
-      }
+doTests <-
+  function(decReg,
+           hitReg,
+           runs,
+           mcAdj,
+           pValue,
+           doTrace,
+           timeStart) {
+    pAdjMethod <- ifelse(mcAdj[1], 'bonferroni', 'none')
+    #If attribute is significantly more frequent better than shadowMax, its claimed Confirmed
+    toAccept <-
+      stats::p.adjust(stats::pbinom(hitReg - 1, runs, 0.5, lower.tail = FALSE),
+                      method = pAdjMethod) < pValue
+    (decReg == "Tentative" & toAccept) -> toAccept
+    
+    #If attribute is significantly more frequent worse than shadowMax, its claimed Rejected (=irrelevant)
+    toReject <-
+      stats::p.adjust(stats::pbinom(hitReg, runs, 0.5, lower.tail = TRUE), method =
+                        pAdjMethod) < pValue
+    (decReg == "Tentative" & toReject) -> toReject
+    
+    #Update decReg
+    decReg[toAccept] <- "Confirmed"
+    "Rejected" -> decReg[toReject]
+    
+    #Report progress
+    if (doTrace > 0) {
+      names(hitReg) -> attNames
+      nAcc <- sum(toAccept)
+      nRej <- sum(toReject)
+      nLeft <- sum(decReg == "Tentative")
+      if (nAcc + nRej > 0)
+        message(sprintf(
+          "After %s iterations, +%s: ",
+          runs,
+          format(difftime(Sys.time(), timeStart), digits = 2)
+        ))
+      if (nAcc > 0)
+        message(sprintf(
+          " confirmed %s attribute%s: %s",
+          nAcc,
+          ifelse(nAcc == 1, '', 's'),
+          .attListPrettyPrint(attNames[toAccept])
+        ))
+      if (nRej > 0)
+        message(sprintf(
+          " rejected %s attribute%s: %s",
+          nRej,
+          ifelse(nRej == 1, '', 's'),
+          .attListPrettyPrint(attNames[toReject])
+        ))
+      if (nAcc + nRej > 0)
+        if (nLeft > 0) {
+          message(sprintf(
+            " still have %s attribute%s left.\n",
+            nLeft,
+            ifelse(nLeft == 1, '', 's')
+          ))
+        } else{
+          if (nAcc + nRej > 0)
+            message(" no more attributes left.\n")
+        }
+    }
+    return(decReg)
   }
-  return(decReg)
-}
 
