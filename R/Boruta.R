@@ -92,7 +92,7 @@ Boruta <- function(x, ...)
 #' #Shows important bands
 #' plot(Bor.son,sort=FALSE)
 #' }
-Boruta.default <-
+Boruta.default <- 
   function(x,
            y,
            pValue = 0.01,
@@ -102,81 +102,107 @@ Boruta.default <-
            holdHistory = TRUE,
            getImp = getImpRfZ,
            ...) {
-    #Timer starts... now!
-    timeStart <- Sys.time()
-    
+
     #Extract the call to store in output
     cl <- match.call()
     cl[[1]] <- as.name('Boruta')
     
     #Convert x into a data.frame
-    if (!is.data.frame(x))
-      x <- data.frame(x)
+    if (!is.data.frame(x) & !is.h2o(x)) x <- data.frame(x)
     
     ##Some checks on x & y
     if (length(grep('^shadow', names(x))) > 0)
-      stop(
-        'Attributes with names starting from "shadow" are reserved for internal use. Please rename them.'
-      )
-    if (any(c(is.na(x), is.na(y))))
-      stop('Cannot process NAs in input. Please remove them.')
-    if (maxRuns < 11)
-      stop('maxRuns must be greater than 10.')
+      stop('Attributes with names starting from "shadow" are reserved for internal use. Please rename them.')
     
-    
-    ##Creating some useful constants
-    nAtt <- ncol(x)
-    nrow(x) -> nObjects
-    attNames <-
-      names(x)
-    c("Tentative", "Confirmed", "Rejected") -> confLevels
-    
-    ##Initiate state
-    decReg <- factor(rep("Tentative", nAtt), levels = confLevels)
+    if(anyNA(x)) stop('Cannot process NAs in input. Please remove them.')
+    if(anyNA(y)) stop('Cannot process NAs in input. Please remove them.')
+  
+  
+    ##Main loop
+    Boruta_internal_main_loop(x, 
+                              y, 
+                              pValue,
+                              mcAdj,
+                              maxRuns,
+                              doTrace,
+                              holdHistory,
+                              getImp, 
+                              maxRuns,
+                              cl = cl,
+                              ...)
+  }
+
+
+Boruta_internal_main_loop <- function(x, 
+                                      y,
+                                      pValue,
+                                      mcAdj,
+                                      maxRuns,
+                                      doTrace,
+                                      holdHistory,
+                                      getImp,
+                                      
+                                      decReg, 
+                                      hitReg, 
+                                      runs, 
+                                      impHistory,
+                                      cl = NULL,
+                                      
+                                      ...) {
+  #Timer starts... now!
+  timeStart <- Sys.time()
+  
+  ##Creating some useful constants
+  nAtt <- ncol(x)
+  nObjects <- nrow(x)
+  attNames <- names(x)
+  confLevels <- c("Tentative", "Confirmed", "Rejected")
+  
+  if(missing("decReg")) decReg <- factor(rep("Tentative", nAtt), levels = confLevels)
+  if(missing("hitReg")) {
     hitReg <- rep(0, nAtt)
     names(hitReg) <- attNames
-    impHistory <- list()
-    runs <- 0
-    
-    ##Main loop
-    
-    while (any(decReg == "Tentative") && (runs + 1 -> runs) < maxRuns) {
-      curImp <- addShadowsAndGetImp(decReg, runs, x, y, getImp, doTrace, ...)
-      hitReg <- assignHits(hitReg, curImp, doTrace)
-      decReg <- doTests(decReg, hitReg, runs, mcAdj, pValue, doTrace, timeStart)
-      
-      #If needed, update impHistory with scores obtained in this iteration
-      if (holdHistory) {
-        imp <- c(
-          curImp$imp,
-          shadowMax = max(curImp$shaImp),
-          shadowMean = mean(curImp$shaImp),
-          shadowMin = min(curImp$shaImp)
-        )
-        impHistory <- c(impHistory, list(imp))
-      }
-    }
-    
-    ##Building result
-    impHistory <- do.call(rbind, impHistory)
-    names(decReg) <- attNames
-    ans <- list(
-      finalDecision = decReg,
-      ImpHistory = impHistory,
-      pValue = pValue,
-      maxRuns = maxRuns,
-      light = TRUE,
-      mcAdj = mcAdj,
-      timeTaken = Sys.time() - timeStart,
-      roughfixed = FALSE,
-      call = cl,
-      impSource = comment(getImp),
-      hits = hitReg
-    )
-    
-    "Boruta" -> class(ans)
-    return(ans)
   }
+  if(missing("runs")) runs <- 0
+  if(missing("impHistory")) impHistory <- list()
+  
+  while (any(decReg == "Tentative") && (runs + 1 -> runs) < maxRuns) {
+    curImp <- addShadowsAndGetImp(decReg, runs, x, y, getImp, doTrace, ...)
+    hitReg <- assignHits(hitReg, curImp, doTrace)
+    decReg <- doTests(decReg, hitReg, runs, mcAdj, pValue, doTrace, timeStart)
+    
+    #If needed, update impHistory with scores obtained in this iteration
+    if (holdHistory) {
+      imp <- c(
+        curImp$imp,
+        shadowMax = max(curImp$shaImp),
+        shadowMean = mean(curImp$shaImp),
+        shadowMin = min(curImp$shaImp)
+      )
+      impHistory <- c(impHistory, list(imp))
+    }
+  }
+  
+  ##Building result
+  impHistory <- do.call(rbind, impHistory)
+  names(decReg) <- attNames
+  ans <- list(
+    finalDecision = decReg,
+    ImpHistory = impHistory,
+    pValue = pValue,
+    maxRuns = maxRuns,
+    light = TRUE,
+    mcAdj = mcAdj,
+    timeTaken = Sys.time() - timeStart,
+    roughfixed = FALSE,
+    call = cl,
+    impSource = comment(getImp),
+    hits = hitReg
+  )
+  "Boruta" -> class(ans)
+  
+  return(ans)
+}
 
 #' Resume feature selection from Boruta object.
 #' 
@@ -184,10 +210,11 @@ Boruta.default <-
 #' Run Boruta and then pass in that object to resume feature selection, when
 #' features remain tentative.
 #' @export
-#' @rdname ResumeBoruta
+#' @rdname Boruta
+#' @method Boruta Boruta
+#' @param priorBoruta Boruta object.
 #' @param x data frame of predictors.
 #' @param y response vector; factor for classification, numeric vector for regression, \code{Surv} object for survival (supports depends on importance adapter capabilities).
-#' @param priorBoruta Boruta object.
 #' @param maxAdditionalRuns Maximum number of additional importance source runs.
 #' @param numPriorRuns Number of runs previously attempted. Not needed if the priorBoruta object contains importance history.
 #' @param getImp function used to obtain attribute importance.
@@ -214,10 +241,10 @@ Boruta.default <-
 #' #Last nonsense attribute shoudl be confirmed important.
 #' print(Boruta.iris.extended)
 #' print(Boruta.iris.extended2)
-ResumeBoruta <-
-  function(x,
+Boruta.Boruta <-  
+  function(priorBoruta,
+           x,
            y,
-           priorBoruta,
            maxAdditionalRuns = 10,
            numPriorRuns = nrow(priorBoruta$ImpHistory),
            pValue = 0.01,
@@ -233,35 +260,21 @@ ResumeBoruta <-
     if (priorBoruta$roughfixed)
       warning("Boruta resume should only be run on Boruta objects prior to rough fix.")
     
-    #Timer starts... now!
-    timeStart <- Sys.time()
-    
     #Convert x into a data.frame
-    if (!is.data.frame(x))
-      x <- data.frame(x)
+    if (!is.data.frame(x) & !is.h2o(x)) x <- data.frame(x)
     
     ##Some checks on x & y
     if (length(grep('^shadow', names(x))) > 0)
-      stop(
-        'Attributes with names starting from "shadow" are reserved for internal use. Please rename them.'
-      )
-    if (any(c(is.na(x), is.na(y))))
-      stop('Cannot process NAs in input. Please remove them.')
+      stop('Attributes with names starting from "shadow" are reserved for internal use. Please rename them.')
+    
+    if(anyNA(x)) stop('Cannot process NAs in input. Please remove them.')
+    if(anyNA(y)) stop('Cannot process NAs in input. Please remove them.')
+    
     if (ncol(x) != length(priorBoruta$finalDecision))
       stop('Cannot resume with data containing different columns.')
     if (!all(colnames(x) == names(priorBoruta$finalDecision)))
       stop('Cannot resume with data containing different columns.')
     
-    #Creating some useful constants
-    nAtt <- ncol(x)
-    nrow(x) -> nObjects
-    attNames <-
-      names(x)
-    c("Tentative", "Confirmed", "Rejected") -> confLevels
-    
-    decReg <- priorBoruta$finalDecision
-    hitReg <- priorBoruta$hits
-    impHistory <- priorBoruta$ImpHistory
     
     if (is.null(numPriorRuns)) {
       runs <- priorBoruta$maxRuns
@@ -272,45 +285,22 @@ ResumeBoruta <-
     maxRuns <- runs + maxAdditionalRuns
     
     ##Main loop
-    
-    while (any(decReg == "Tentative") && (runs + 1 -> runs) < maxRuns) {
-      curImp <- addShadowsAndGetImp(decReg, runs, x, y, getImp, doTrace, ...)
-      hitReg <- assignHits(hitReg, curImp, doTrace)
-      decReg <-
-        doTests(decReg, hitReg, runs, mcAdj, pValue, doTrace, timeStart)
-      
-      #If needed, update impHistory with scores obtained in this iteration
-      if (holdHistory) {
-        imp <- c(
-          curImp$imp,
-          shadowMax = max(curImp$shaImp),
-          shadowMean = mean(curImp$shaImp),
-          shadowMin = min(curImp$shaImp)
-        )
-        #impHistory<-c(impHistory,list(imp))
-        impHistory <- rbind(impHistory, imp)
-      }
-    }
-    
-    ##Building result
-    # impHistory<-do.call(rbind,impHistory)
-    names(decReg) <- attNames
-    ans <- list(
-      finalDecision = decReg,
-      ImpHistory = impHistory,
-      pValue = pValue,
-      maxRuns = maxRuns,
-      light = TRUE,
-      mcAdj = mcAdj,
-      timeTaken = Sys.time() - timeStart + priorBoruta$timeTaken,
-      roughfixed = FALSE,
-      call = priorBoruta$call,
-      impSource = comment(getImp),
-      hits = hitReg
-    )
-    
-    "Boruta" -> class(ans)
-    return(ans)
+    Boruta_internal_main_loop(x, 
+                              y,
+                              pValue,
+                              mcAdj,
+                              maxRuns,
+                              doTrace,
+                              holdHistory,
+                              getImp,
+                              
+                              decReg = priorBoruta$finalDecision, 
+                              hitReg = priorBoruta$hits, 
+                              runs = runs, 
+                              impHistory = priorBoruta$ImpHistory,
+                              cl = NULL,
+                              
+                              ...)
     
   }
 
