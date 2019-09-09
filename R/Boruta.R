@@ -102,13 +102,13 @@ Boruta.default <-
            holdHistory = TRUE,
            getImp = getImpRfZ,
            ...) {
-
+    
     #Extract the call to store in output
     cl <- match.call()
     cl[[1]] <- as.name('Boruta')
     
     #Convert x into a data.frame
-    if (!is.data.frame(x) & !is.h2o(x)) x <- data.frame(x)
+    if (!is.data.frame(x) & !inherits(x, "H2OFrame")) x <- data.frame(x)
     
     ##Some checks on x & y
     if (length(grep('^shadow', names(x))) > 0)
@@ -119,15 +119,15 @@ Boruta.default <-
   
   
     ##Main loop
-    Boruta_internal_main_loop(x, 
-                              y, 
-                              pValue,
-                              mcAdj,
-                              maxRuns,
-                              doTrace,
-                              holdHistory,
-                              getImp, 
-                              maxRuns,
+    Boruta_internal_main_loop(x = x, 
+                              y = y, 
+                              pValue = pValue,
+                              mcAdj = mcAdj,
+                              maxRuns = maxRuns,
+                              doTrace = doTrace,
+                              holdHistory = holdHistory,
+                              getImp = getImp, 
+                              
                               cl = cl,
                               ...)
   }
@@ -145,7 +145,7 @@ Boruta_internal_main_loop <- function(x,
                                       decReg, 
                                       hitReg, 
                                       runs, 
-                                      impHistory,
+                                      impHistory = NULL,
                                       cl = NULL,
                                       
                                       ...) {
@@ -158,33 +158,44 @@ Boruta_internal_main_loop <- function(x,
   attNames <- names(x)
   confLevels <- c("Tentative", "Confirmed", "Rejected")
   
-  if(missing("decReg")) decReg <- factor(rep("Tentative", nAtt), levels = confLevels)
+  if(missing("decReg")) {
+    # cat("decReg missing; creating new version.\n")
+    decReg <- factor(rep("Tentative", nAtt), levels = confLevels)
+  }
   if(missing("hitReg")) {
+    # cat("hitReg missing; creating new version.\n")
     hitReg <- rep(0, nAtt)
     names(hitReg) <- attNames
   }
-  if(missing("runs")) runs <- 0
-  if(missing("impHistory")) impHistory <- list()
+  if(missing("runs")) {
+    # cat("runs missing; setting to 0.\n")
+    runs <- 0
+  }
+
   
+
   while (any(decReg == "Tentative") && (runs + 1 -> runs) < maxRuns) {
     curImp <- addShadowsAndGetImp(decReg, runs, x, y, getImp, doTrace, ...)
+    
+    # If more than one set of importances (e.g., from cross-validation), increment runs
+    runs <- runs + nrow(curImp$imp.mat) - 1
+    
     hitReg <- assignHits(hitReg, curImp, doTrace)
     decReg <- doTests(decReg, hitReg, runs, mcAdj, pValue, doTrace, timeStart)
     
     #If needed, update impHistory with scores obtained in this iteration
     if (holdHistory) {
-      imp <- c(
-        curImp$imp,
-        shadowMax = max(curImp$shaImp),
-        shadowMean = mean(curImp$shaImp),
-        shadowMin = min(curImp$shaImp)
-      )
-      impHistory <- c(impHistory, list(imp))
+      imp <- cbind(
+        curImp$imp.mat,
+        shadowMax = apply(curImp$shaImp.mat, 1, max),
+        shadowMean = apply(curImp$shaImp.mat, 1, mean),
+        shadowMin = apply(curImp$shaImp.mat, 1, min))
+      
+      impHistory <- rbind(impHistory, imp)
     }
   }
   
   ##Building result
-  impHistory <- do.call(rbind, impHistory)
   names(decReg) <- attNames
   ans <- list(
     finalDecision = decReg,
@@ -211,23 +222,10 @@ Boruta_internal_main_loop <- function(x,
 #' features remain tentative.
 #' @export
 #' @rdname Boruta
-#' @method Boruta Boruta
-#' @param priorBoruta Boruta object.
-#' @param x data frame of predictors.
-#' @param y response vector; factor for classification, numeric vector for regression, \code{Surv} object for survival (supports depends on importance adapter capabilities).
+#' @title ResumeBoruta
+#' @param checkpoint Boruta object with which to resume training..
 #' @param maxAdditionalRuns Maximum number of additional importance source runs.
-#' @param numPriorRuns Number of runs previously attempted. Not needed if the priorBoruta object contains importance history.
-#' @param getImp function used to obtain attribute importance.
-#' The default is getImpRfZ, which runs random forest from the \code{ranger} package and gathers Z-scores of mean decrease accuracy measure.
-#' It should return a numeric vector of a size identical to the number of columns of its first argument, containing importance measure of respective attributes.
-#' Any order-preserving transformation of this measure will yield the same result.
-#' It is assumed that more important attributes get higher importance. +-Inf are accepted, NaNs and NAs are treated as 0s, with a warning.
-#' @param pValue confidence level. Default value should be used.
-#' @param mcAdj if set to \code{TRUE}, a multiple comparisons adjustment using the Bonferroni method will be applied. Default value should be used; older (1.x and 2.x) versions of Boruta were effectively using \code{FALSE}.
-#' @param holdHistory if set to \code{TRUE}, the full history of importance is stored and returned as the \code{ImpHistory} element of the result.
-#' Can be used to decrease a memory footprint of Boruta in case this side data is not used, especially when the number of attributes is huge; yet it disables plotting of such made \code{Boruta} objects and the use of the \code{\link{TentativeRoughFix}} function.
-#' @param doTrace verbosity level. 0 means no tracing, 1 means reporting decision about each attribute as soon as it is justified, 2 means the same as 1, plus reporting each importance source run, 3 means the same as 2, plus reporting of hits assigned to yet undecided attributes.
-#' @param ... additional parameters passed to \code{getImp}.
+#' @param numPriorRuns Number of runs previously attempted. Not needed if the checkpoint Boruta object contains importance history.
 #' @examples
 #' set.seed(777)
 #' #Add some nonsense attributes to iris dataset by shuffling original attributes
@@ -237,31 +235,32 @@ Boruta_internal_main_loop <- function(x,
 #' Boruta.iris.extended <- Boruta(y = iris.extended$Species, x = iris.extended[,-which(colnames(iris.extended) == "Species")], doTrace=2)
 #' #Nonsense attributes should be rejected, except 1
 #' print(Boruta.iris.extended)
-#' Boruta.iris.extended2 <- ResumeBoruta(y = iris.extended$Species, x = iris.extended[,-which(colnames(iris.extended) == "Species")], priorBoruta = Boruta.iris.extended, maxAdditionalRuns=1000, doTrace=2)
+#' Boruta.iris.extended2 <- ResumeBoruta(y = iris.extended$Species, x = iris.extended[,-which(colnames(iris.extended) == "Species")], checkpoint = Boruta.iris.extended, maxAdditionalRuns=1000, doTrace=2)
 #' #Last nonsense attribute shoudl be confirmed important.
 #' print(Boruta.iris.extended)
 #' print(Boruta.iris.extended2)
-Boruta.Boruta <-  
-  function(priorBoruta,
+ResumeBoruta <-  
+  function(checkpoint,
            x,
            y,
            maxAdditionalRuns = 10,
-           numPriorRuns = nrow(priorBoruta$ImpHistory),
+           numPriorRuns = nrow(checkpoint$ImpHistory),
            pValue = 0.01,
            mcAdj = TRUE,
            doTrace = 0,
            holdHistory = TRUE,
            getImp = getImpRfZ,
            ...) {
-    if (class(priorBoruta) != 'Boruta')
+    if (class(checkpoint) != 'Boruta')
       stop("This is NOT a Boruta object!")
-    if (!("hits" %in% names(priorBoruta)))
+    if (!("hits" %in% names(checkpoint)))
       stop("Sorry, Boruta resume ony works with Boruta objects that include hits.")
-    if (priorBoruta$roughfixed)
+    if (checkpoint$roughfixed)
       warning("Boruta resume should only be run on Boruta objects prior to rough fix.")
     
+   
     #Convert x into a data.frame
-    if (!is.data.frame(x) & !is.h2o(x)) x <- data.frame(x)
+    if (!is.data.frame(x) & !inherits(x, "H2OFrame")) x <- data.frame(x)
     
     ##Some checks on x & y
     if (length(grep('^shadow', names(x))) > 0)
@@ -270,34 +269,32 @@ Boruta.Boruta <-
     if(anyNA(x)) stop('Cannot process NAs in input. Please remove them.')
     if(anyNA(y)) stop('Cannot process NAs in input. Please remove them.')
     
-    if (ncol(x) != length(priorBoruta$finalDecision))
+    if (ncol(x) != length(checkpoint$finalDecision))
       stop('Cannot resume with data containing different columns.')
-    if (!all(colnames(x) == names(priorBoruta$finalDecision)))
+    if (!all(colnames(x) == names(checkpoint$finalDecision)))
       stop('Cannot resume with data containing different columns.')
     
     
     if (is.null(numPriorRuns)) {
-      runs <- priorBoruta$maxRuns
+      runs <- checkpoint$maxRuns
     } else {
       runs <- numPriorRuns
     }
     
-    maxRuns <- runs + maxAdditionalRuns
-    
     ##Main loop
-    Boruta_internal_main_loop(x, 
-                              y,
-                              pValue,
-                              mcAdj,
-                              maxRuns,
-                              doTrace,
-                              holdHistory,
-                              getImp,
+    Boruta_internal_main_loop(x = x, 
+                              y = y,
+                              pValue = pValue,
+                              mcAdj = mcAdj,
+                              maxRuns = runs + maxAdditionalRuns,
+                              doTrace = doTrace,
+                              holdHistory = holdHistory,
+                              getImp = getImp,
                               
-                              decReg = priorBoruta$finalDecision, 
-                              hitReg = priorBoruta$hits, 
+                              decReg = checkpoint$finalDecision, 
+                              hitReg = checkpoint$hits, 
                               runs = runs, 
-                              impHistory = priorBoruta$ImpHistory,
+                              impHistory = checkpoint$ImpHistory,
                               cl = NULL,
                               
                               ...)
@@ -401,58 +398,241 @@ print.Boruta <- function(x, ...) {
   invisible(x)
 }
 
+
+#' Shuffle H2O column.
+#'
+#' Helper function to shuffle a single H2o column.
+#' @param dat An H2O frame or something that can be converted to one using as.h2o.
+#' @param col_idx Column index for the column to be shuffled.
+#' @return Shuffled H2O frame.
+#' @export
+# h2o.shuffle_column <- function(dat, col_idx) {
+# 
+#   if(!requireNamespace("h2o", quietly = TRUE)) {
+#     stop("Please install h2o package to use getImpH2O.")
+#   }
+# 
+#   nCols <- ncol(dat)
+#   nObs <- nrow(dat)
+#   column_name <- colnames(dat)[col_idx]
+# 
+#   if(!h2o::is.h2o(dat)) {
+#     dat <- as.h2o(dat, destination_frame = "shuffle_column_dat")
+#   } else {
+#     dat <- h2o.assign(dat, "shuffle_column_dat")
+#   }
+# 
+#   h2o::h2o.no_progress()
+#   tmp.hex <- h2o::h2o.assign(h2o::h2o.createFrame(rows = nObs, cols = 1, randomize = TRUE,
+#                                   categorical_fraction = 0,
+#                                   integer_fraction = 0,
+#                                   binary_fraction = 0,
+#                                   binary_ones_fraction = 0,
+#                                   missing_fraction = 0),
+#                              "shuffle_column_tmp")
+#   h2o::h2o.show_progress()
+# 
+#   # colnames(tmp.hex) <- c("shuffle_column_tmp", "test_tmp") # failing for some reason
+#   tmp.hex <- h2o.assign(h2o::h2o.cbind(dat[, col_idx], tmp.hex[, "C1"]), "shuffle_column_tmp")
+#   tmp.hex <- h2o.assign(h2o::h2o.arrange(tmp.hex, "C1"), "shuffle_column_tmp")
+# 
+# 
+#   if(col_idx == 1) {
+#     res <- h2o.assign(h2o::h2o.cbind(tmp.hex[, column_name],
+#                      dat[,(col_idx+1):nCols]), "shuffle_column_result")
+# 
+#   } else if(col_idx == nCols) {
+#     res <- h2o.assign(h2o::h2o.cbind(dat[, 1:(col_idx - 1)],
+#                                      tmp.hex[, column_name]), "shuffle_column_result")
+#   } else {
+#     res <- h2o.assign(h2o::h2o.cbind(dat[, 1:(col_idx - 1)],
+#                                      tmp.hex[, column_name],
+#                      dat[,(col_idx+1):nCols]), "shuffle_column_result")
+#   }
+# 
+#   h2o::h2o.rm("shuffle_column_tmp")
+#   h2o::h2o.rm("shuffle_column_dat")
+#   # h2o.rm(sorted_tmp.hex)
+# 
+#   return(res)
+# }
+
+h2o.shuffle_column <- function(dat, col_idx, modify_inline = TRUE) {
+  
+  if(!requireNamespace("h2o", quietly = TRUE)) {
+    stop("Please install h2o package to use getImpH2O.")
+  }
+  
+  nCols <- ncol(dat)
+  nObs <- nrow(dat)
+  column_name <- colnames(dat)[col_idx]
+  
+  if(!h2o::is.h2o(dat)) {
+    dat <- as.h2o(dat, destination_frame = "shuffle_column_dat")
+  } else {
+    if(!modify_inline)
+      dat <- h2o.assign(dat, "shuffle_column_dat")
+  }
+  dat_key <- h2o::h2o.getId(dat)
+  
+  h2o::h2o.no_progress()
+  tmp.hex <- h2o::h2o.createFrame(rows = nObs, cols = 1, randomize = TRUE, 
+                                                  categorical_fraction = 0,
+                                                  integer_fraction = 0,
+                                                  binary_fraction = 0,
+                                                  binary_ones_fraction = 0,
+                                                  missing_fraction = 0)
+  on.exit(h2o::h2o.rm(tmp.hex), add = TRUE)
+  h2o::h2o.show_progress()
+  
+  # colnames(tmp.hex) <- c("shuffle_column_tmp", "test_tmp") # failing for some reason
+  tmp.hex <- h2o::h2o.cbind(dat[, col_idx], tmp.hex[, "C1"])
+  tmp.hex <- h2o::h2o.arrange(tmp.hex, "C1")
+  
+  
+  if(col_idx == 1) {
+    res <- h2o::h2o.cbind(tmp.hex[, column_name],
+                                     dat[,(col_idx+1):nCols])
+    
+  } else if(col_idx == nCols) {
+    res <- h2o::h2o.cbind(dat[, 1:(col_idx - 1)],
+                                     tmp.hex[, column_name])
+  } else {
+    res <- h2o::h2o.cbind(dat[, 1:(col_idx - 1)],
+                                     tmp.hex[, column_name],
+                                     dat[,(col_idx+1):nCols])
+  }
+  
+  if(modify_inline) {
+    res <- h2o.assign(res, dat_key)
+  } else {
+    res <- h2o.assign(res, "shuffle_column_result")
+  }
+  
+  # h2o::h2o.rm(tmp.hex)
+  # h2o::h2o.rm("shuffle_column_dat")
+  # h2o.rm(sorted_tmp.hex)
+  
+  invisible(res)
+}
+
 ##Expands the information system with newly built random attributes and calculates importance
 addShadowsAndGetImp <- function(decReg, runs, x, y, getImp, doTrace, ...) {
-  #xSha is going to be a data frame with shadow attributes; time to init it.
-  xSha <- x[, decReg != "Rejected", drop = F]
-  while (dim(xSha)[2] < 5)
-    xSha <-
-      cbind(xSha, xSha)
-  #There must be at least 5 random attributes.
+  nAtt <- ncol(x)
+  attNames <- names(x)
   
-  #Now, we permute values in each attribute
+  # xSha is going to be a data frame with shadow attributes; time to init it.
+  # also make sure data frames are in H2O if necessary; make copies to avoid changing original
+  if(inherits(x, "H2OFrame") | inherits(y, "H2OFrame")) {
+    # print(h2o::h2o.ls())
+    if(!requireNamespace("h2o", quietly = TRUE)) {
+      stop("Please install h2o package to use getImpH2O.")
+    }
+    x <- h2o::h2o.assign(x, "Boruta_x")
+    y <- h2o::h2o.assign(y, "Boruta_y")
+    xSha <- h2o::h2o.assign(x[, decReg != "Rejected", drop = F], "Boruta_xSha")
+    # print(h2o::h2o.ls())
+  } else {
+    xSha <- x[, decReg != "Rejected", drop = F]
+  }
+  
+  while (dim(xSha)[2] < 5) { #There must be at least 5 random attributes.
+    if(inherits(xSha, "H2OFrame")) {
+      xSha <- h2o::h2o.cbind(xSha, xSha)
+      # print(h2o::h2o.ls())
+    } else {
+      xSha <- cbind(xSha, xSha)
+    }
+  }
+   
+  
+  #Now, we permute values in each attribute (shuffle the shadow features)
   nSha <- ncol(xSha)
-  data.frame(lapply(xSha, sample)) -> xSha
-  names(xSha) <- paste('shadow', 1:nSha, sep = "")
   
+  if(inherits(xSha, "H2OFrame")) {
+    if (doTrace > 2) 
+      message(sprintf('Shuffling H2O columns'))
+    for(i in seq_len(nSha)) {
+      h2o.shuffle_column(xSha, i, modify_inline = TRUE)
+    }
+    # confirm shuffle
+    stopifnot(!all(as.vector(x[,1]) == as.vector(xSha[, 1])))
+    # h2o::h2o.rm("shuffle_column_result")
+    # print(h2o::h2o.ls())
+  } else {
+    xSha <- data.frame(lapply(xSha, sample)) 
+  }
+  namesSha <- paste('shadow', 1:nSha, sep = "")
+  names(xSha) <- namesSha
+
   #Notifying user of our progress
   if (doTrace > 1)
     message(sprintf(' %s. run of importance source...', runs))
   
+  if(inherits(xSha, "H2OFrame")) {
+    combined_x <- h2o.cbind(x[, decReg != "Rejected"], xSha)
+    # print(h2o::h2o.ls())
+  } else {
+    combined_x <- cbind(x[, decReg != "Rejected"], xSha)
+  }
+  
+  
+  
   #Calling importance source; "..." can be used by the user to pass rf attributes (for instance ntree)
-  impRaw <- getImp(cbind(x[, decReg != "Rejected"], xSha), y, ...)
-  if (!is.numeric(impRaw))
-    stop("getImp result is not a numeric vector. Please check the given getImp function.")
-  if (length(impRaw) != sum(decReg != "Rejected") + ncol(xSha))
-    stop("getImp result has a wrong length. Please check the given getImp function.")
+  impRaw <- getImp(x = combined_x, y = y, ...)
+  
+  if(inherits(xSha, "H2OFrame")) {
+    # print(h2o::h2o.ls())
+    # h2o::h2o.rm("Boruta_combined_x")
+    h2o::h2o.rm("Boruta_xSha")
+    h2o::h2o.rm("Boruta_x")
+    h2o::h2o.rm("Boruta_y")
+    # print(h2o::h2o.ls())
+  }
+  
+  if((is.vector(impRaw) & !is.numeric(impRaw)) & !is.matrix(impRaw)) {
+    stop("getImp result is not a numeric vector or a matrix. Please check the given getImp function.")
+  } 
+  
+  if(is.vector(impRaw)) {
+    if(length(impRaw) != sum(decReg != "Rejected") + nSha)
+      stop("getImp result has a wrong length. Please check the given getImp function.")
+    
+    impRaw <- t(as.matrix(impRaw))
+    
+  } else if(ncol(impRaw) != sum(decReg != "Rejected") + nSha) {
+    stop("getImp result matrix has a wrong number of columns. Please check the given getImp function.")
+  }
+
   if (any(is.na(impRaw) | is.nan(impRaw))) {
     impRaw[is.na(impRaw) | is.nan(impRaw)] <- 0
     warning("getImp result contains NA(s) or NaN(s); replacing with 0(s), yet this is suspicious.")
   }
   
   #Importance must have Rejected attributes put on place and filled with -Infs
-  nAtt <- ncol(x)
-  attNames <- names(x)
-  imp <- rep(-Inf, nAtt + nSha)
-  names(imp) <- c(attNames, names(xSha))
-  impRaw -> imp[c(decReg != "Rejected", rep(TRUE, nSha))]
-  shaImp <- imp[(nAtt + 1):length(imp)]
-  imp[1:nAtt] -> imp
   
-  return(list(imp = imp, shaImp = shaImp))
+  imp.mat <- matrix(data = -Inf, nrow = nrow(impRaw), ncol = nAtt + nSha)
+  colnames(imp.mat) <- c(attNames, namesSha)
+  
+  imp.mat[, c(decReg != "Rejected", rep(TRUE, nSha))] <- impRaw
+  shaImp.mat <- imp.mat[, (nAtt + 1):ncol(imp.mat), drop = F]
+  imp.mat <- imp.mat[,1:nAtt, drop = F]
+  
+  return(list(imp.mat = imp.mat, shaImp.mat = shaImp.mat))
 }
 
 ##Assigns hits
 assignHits <- function(hitReg, curImp, doTrace) {
-  curImp$imp > max(curImp$shaImp) -> hits
+
+  hits.mat <- curImp$imp.mat > apply(curImp$shaImp.mat, 1, max)
   if (doTrace > 2) {
     uncMask <- decReg == "Tentative"
-    intHits <- sum(hits[uncMask])
+    intHits <- sum(hits.mat[,uncMask])
     if (intHits > 0)
       message(
         sprintf(
           "Assigned hit to %s attribute%s out of %s undecided.",
-          sum(hits[uncMask]),
+          sum(colSums(hits.mat) > 0),
           if (intHits == 1)
             ""
           else
@@ -463,7 +643,7 @@ assignHits <- function(hitReg, curImp, doTrace) {
     else
       message("None of undecided attributes scored a hit.")
   }
-  hitReg[hits] <- hitReg[hits] + 1
+  hitReg <- hitReg + colSums(hits.mat)
   return(hitReg)
 }
 
