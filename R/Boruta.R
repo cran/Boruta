@@ -174,7 +174,7 @@ Boruta_internal_main_loop <- function(x,
 
   
 
-  while (any(decReg == "Tentative") && (runs + 1 -> runs) < maxRuns) {
+  while (any(decReg == "Tentative") && (runs + 1 -> runs) <= maxRuns) {
     curImp <- addShadowsAndGetImp(decReg, runs, x, y, getImp, doTrace, ...)
     
     # If more than one set of importances (e.g., from cross-validation), increment runs
