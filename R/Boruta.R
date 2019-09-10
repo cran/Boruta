@@ -406,6 +406,17 @@ print.Boruta <- function(x, ...) {
 #' @param col_idx Column index for the column to be shuffled.
 #' @return Shuffled H2O frame.
 #' @export
+h2o.shuffle_column <- function(dat, col_idx) {
+  col_name <- colnames(dat)[col_idx]
+  
+  col <- dat[, col_name]
+  col <- h2o.cbind(col, h2o.runif(col))
+  col <- h2o.arrange(col, "rnd")
+  dat[, col_name] <- col[, col_name]
+  
+  invisible(dat)
+}
+
 # h2o.shuffle_column <- function(dat, col_idx) {
 # 
 #   if(!requireNamespace("h2o", quietly = TRUE)) {
@@ -456,65 +467,77 @@ print.Boruta <- function(x, ...) {
 # 
 #   return(res)
 # }
+# 
+# h2o.shuffle_column2 <- function(dat, col_idx, modify_inline = TRUE) {
+#   
+#   if(!requireNamespace("h2o", quietly = TRUE)) {
+#     stop("Please install h2o package to use getImpH2O.")
+#   }
+#   
+#   nCols <- ncol(dat)
+#   nObs <- nrow(dat)
+#   column_name <- colnames(dat)[col_idx]
+#   
+#   if(!h2o::is.h2o(dat)) {
+#     dat <- as.h2o(dat, destination_frame = "shuffle_column_dat")
+#   } else {
+#     if(!modify_inline)
+#       dat <- h2o.assign(dat, "shuffle_column_dat")
+#   }
+#   dat_key <- h2o::h2o.getId(dat)
+#   
+#   h2o::h2o.no_progress()
+#   tmp.hex <- h2o::h2o.createFrame(rows = nObs, cols = 1, randomize = TRUE, 
+#                                                   categorical_fraction = 0,
+#                                                   integer_fraction = 0,
+#                                                   binary_fraction = 0,
+#                                                   binary_ones_fraction = 0,
+#                                                   missing_fraction = 0)
+#   on.exit(h2o::h2o.rm(tmp.hex), add = TRUE)
+#   h2o::h2o.show_progress()
+#   
+#   # colnames(tmp.hex) <- c("shuffle_column_tmp", "test_tmp") # failing for some reason
+#   tmp.hex <- h2o::h2o.cbind(dat[, col_idx], tmp.hex[, "C1"])
+#   tmp.hex <- h2o::h2o.arrange(tmp.hex, "C1")
+#   
+#   
+#   if(col_idx == 1) {
+#     res <- h2o::h2o.cbind(tmp.hex[, column_name],
+#                                      dat[,(col_idx+1):nCols])
+#     
+#   } else if(col_idx == nCols) {
+#     res <- h2o::h2o.cbind(dat[, 1:(col_idx - 1)],
+#                                      tmp.hex[, column_name])
+#   } else {
+#     res <- h2o::h2o.cbind(dat[, 1:(col_idx - 1)],
+#                                      tmp.hex[, column_name],
+#                                      dat[,(col_idx+1):nCols])
+#   }
+#   
+#   if(modify_inline) {
+#     res <- h2o.assign(res, dat_key)
+#   } else {
+#     res <- h2o.assign(res, "shuffle_column_result")
+#   }
+#   
+#   # h2o::h2o.rm(tmp.hex)
+#   # h2o::h2o.rm("shuffle_column_dat")
+#   # h2o.rm(sorted_tmp.hex)
+#   
+#   invisible(res)
+# }
+# 
+# h2o.shuffle_column3 <- function(dat, col_idx) {
+#   col <- as.vector(dat[, col_idx])
+#   col <- sample(col)
+#   
+#   h2o.no_progress()
+#   dat[, col_idx] <- as.h2o(col)
+#   h2o.show_progress()
+#   invisible(dat)
+# }
 
-h2o.shuffle_column <- function(dat, col_idx, modify_inline = TRUE) {
-  
-  if(!requireNamespace("h2o", quietly = TRUE)) {
-    stop("Please install h2o package to use getImpH2O.")
-  }
-  
-  nCols <- ncol(dat)
-  nObs <- nrow(dat)
-  column_name <- colnames(dat)[col_idx]
-  
-  if(!h2o::is.h2o(dat)) {
-    dat <- as.h2o(dat, destination_frame = "shuffle_column_dat")
-  } else {
-    if(!modify_inline)
-      dat <- h2o.assign(dat, "shuffle_column_dat")
-  }
-  dat_key <- h2o::h2o.getId(dat)
-  
-  h2o::h2o.no_progress()
-  tmp.hex <- h2o::h2o.createFrame(rows = nObs, cols = 1, randomize = TRUE, 
-                                                  categorical_fraction = 0,
-                                                  integer_fraction = 0,
-                                                  binary_fraction = 0,
-                                                  binary_ones_fraction = 0,
-                                                  missing_fraction = 0)
-  on.exit(h2o::h2o.rm(tmp.hex), add = TRUE)
-  h2o::h2o.show_progress()
-  
-  # colnames(tmp.hex) <- c("shuffle_column_tmp", "test_tmp") # failing for some reason
-  tmp.hex <- h2o::h2o.cbind(dat[, col_idx], tmp.hex[, "C1"])
-  tmp.hex <- h2o::h2o.arrange(tmp.hex, "C1")
-  
-  
-  if(col_idx == 1) {
-    res <- h2o::h2o.cbind(tmp.hex[, column_name],
-                                     dat[,(col_idx+1):nCols])
-    
-  } else if(col_idx == nCols) {
-    res <- h2o::h2o.cbind(dat[, 1:(col_idx - 1)],
-                                     tmp.hex[, column_name])
-  } else {
-    res <- h2o::h2o.cbind(dat[, 1:(col_idx - 1)],
-                                     tmp.hex[, column_name],
-                                     dat[,(col_idx+1):nCols])
-  }
-  
-  if(modify_inline) {
-    res <- h2o.assign(res, dat_key)
-  } else {
-    res <- h2o.assign(res, "shuffle_column_result")
-  }
-  
-  # h2o::h2o.rm(tmp.hex)
-  # h2o::h2o.rm("shuffle_column_dat")
-  # h2o.rm(sorted_tmp.hex)
-  
-  invisible(res)
-}
+
 
 ##Expands the information system with newly built random attributes and calculates importance
 addShadowsAndGetImp <- function(decReg, runs, x, y, getImp, doTrace, ...) {
@@ -553,7 +576,7 @@ addShadowsAndGetImp <- function(decReg, runs, x, y, getImp, doTrace, ...) {
     if (doTrace > 2) 
       message(sprintf('Shuffling H2O columns'))
     for(i in seq_len(nSha)) {
-      h2o.shuffle_column(xSha, i, modify_inline = TRUE)
+      xSha <- h2o.shuffle_column(xSha, i)
     }
     # confirm shuffle
     stopifnot(!all(as.vector(x[,1]) == as.vector(xSha[, 1])))

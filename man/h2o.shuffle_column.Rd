@@ -4,7 +4,7 @@
 \alias{h2o.shuffle_column}
 \title{Shuffle H2O column.}
 \usage{
-h2o.shuffle_column(dat, col_idx, modify_inline = TRUE)
+h2o.shuffle_column(dat, col_idx)
 }
 \arguments{
 \item{dat}{An H2O frame or something that can be converted to one using as.h2o.}

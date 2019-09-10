@@ -83,11 +83,24 @@ Boruta.iris.extended_h2o <- Boruta(y = y,
                                    h2o_model_fn = h2o::h2o.randomForest,
                                    importance_type = "relative_importance",
                                    model_id = "Boruta_h2o_test",
-                                   ntrees = 500,
+                                   ntrees = 100,
                                    nfolds = 5,
+                                   maxRuns = 11,
                                    doTrace=2)
 print(Boruta.iris.extended_h2o)
 plotImpHistory(Boruta.iris.extended_h2o)
+
+Boruta.iris.extended_h2o_2 <- ResumeBoruta(checkpoint = Boruta.iris.extended_h2o,
+                                           y = y, 
+                                           x = x,
+                                           getImp = getImpH2O,
+                                           h2o_model_fn = h2o::h2o.randomForest,
+                                           importance_type = "relative_importance",
+                                           model_id = "Boruta_h2o_test",
+                                           ntrees = 100,
+                                           nfolds = 5,
+                                           doTrace=2,
+                                           maxAdditionalRuns = 100)
 
 # test speed for h2o shuffle
 library(h2o)
@@ -99,6 +112,17 @@ iris.hex <- as.h2o(iris.extended, destination_frame = "iris_extended")
 dat1 <- h2o.assign(iris.hex, "dat1")
 dat2 <- h2o.assign(iris.hex, "dat2")
 dat3 <- h2o.assign(iris.hex, "dat3")
+dat4 <- h2o.assign(iris.hex, "dat4")
+dat5 <- h2o.assign(iris.hex, "dat5")
+
+# or a larger data set
+dat1 <- h2o.assign(h2o.createFrame(), "dat1")
+dat2 <- h2o.assign(h2o.createFrame(), "dat2")
+dat3 <- h2o.assign(h2o.createFrame(), "dat3")
+dat4 <- h2o.assign(h2o.createFrame(), "dat4")
+dat5 <- h2o.assign(h2o.createFrame(), "dat5")
+
+
 
 tmp1 <- h2o.shuffle_column(dat = dat1, col_idx = 1)
 tmp2 <- h2o.shuffle_column2(dat = dat2, col_idx = 1, modify_inline = FALSE)
@@ -124,14 +148,100 @@ head(res)
 # 2    B           10  65.966    1.360    53.583    0.865          0         0
 # 3    C           10  48.512    1.000    38.097    0.723          0         0
 
+# test replications elapsed relative user.self sys.self user.child sys.child
+# 1    A           10 130.974    4.034   112.086    1.371          0         0
+# 2    B           10  68.344    2.105    54.493    0.813          0         0
+# 3    C           10  51.374    1.582    38.945    0.740          0         0
+# 4    D           10  32.467    1.000    23.487    0.497          0         0
+
+# test replications elapsed relative user.self sys.self user.child sys.child
+# 1    A           10 145.628    7.185   125.576    1.335          0         0
+# 2    B           10  76.607    3.780    60.417    0.914          0         0
+# 3    C           10  56.456    2.786    42.995    0.676          0         0
+# 4    D           10  48.482    2.392    35.261    0.661          0         0
+# 5    E           10  20.267    1.000    10.275    0.468          0         0
+
+library(data.table)
+options("h2o.use.data.table"=TRUE)
+
 benchmark(
-  A = for(i in seq_len(ncol(x))) { dat1 <- h2o.shuffle_column(dat = dat1, col_idx = i) },
-  B = for(i in seq_len(ncol(x))) { dat2 <- h2o.shuffle_column2(dat = dat2, col_idx = i, modify_inline = FALSE) },
-  C = for(i in seq_len(ncol(x))) { h2o.shuffle_column2(dat = dat3, col_idx = i, modify_inline = TRUE) },
+  A = for(i in seq_len(ncol(iris.hex))) { dat1 <- h2o.shuffle_column(dat = dat1, col_idx = i) },
+  B = for(i in seq_len(ncol(iris.hex))) { dat2 <- h2o.shuffle_column2(dat = dat2, col_idx = i, modify_inline = FALSE) },
+  C = for(i in seq_len(ncol(iris.hex))) { h2o.shuffle_column2(dat = dat3, col_idx = i, modify_inline = TRUE) },
+  D = for(i in seq_len(ncol(iris.hex))) { dat4 <- h2o.shuffle_column3(dat = dat4, col_idx = i) },
+  E = for(i in seq_len(ncol(iris.hex))) { dat5 <- h2o.shuffle_column4(dat = dat5, col_idx = i) },
   replications = 10
 )
 
 
+# test ranger alternatives
+library(caret)
+library(dplyr)
+
+set.seed(777)
+iris.extended<-data.frame(iris,apply(iris[,-5],2,sample))
+names(iris.extended)[6:9]<-paste("Nonsense",1:4,sep="")
+
+
+y = iris.extended$Species
+x = iris.extended[,-which(colnames(iris.extended) == "Species")]
+x$shadow.Boruta.decision<-y
+
+# x100
+# test replications elapsed relative user.self sys.self user.child sys.child
+# 1    A          100   2.170    1.322     4.469    0.602          0         0
+# 2    B          100   1.641    1.000     3.033    0.502          0         0
+# 3    C          100   1.811    1.104     4.054    0.477          0         0
+
+x <- as.data.frame(h2o::h2o.createFrame(cols = 30, missing_fraction = 0))
+x$shadow.Boruta.decision <- rnorm(nrow(x))
+
+# x10
+# test replications elapsed relative user.self sys.self user.child sys.child
+# 1    A           10 104.969    1.698   401.995    1.404      0.002     0.011
+# 2    B           10  61.820    1.000   236.864    1.019      0.000     0.000
+# 3    C           10  70.239    1.136   268.612    1.011      0.000     0.000
+
+# holdoutRF only slightly more than ranger for permutation, but gives two
+# test replications elapsed relative user.self sys.self user.child sys.child
+# 1    A           10 114.356    1.899   408.144    1.419          0         0
+# 2    B           10  60.225    1.000   232.318    1.117          0         0
+# 3    C           10  69.566    1.155   264.356    1.017          0         0
+# 4    D           10 133.189    2.212   511.136    1.536          0         0
+
+benchmark(
+  A = ranger::ranger(data=x,dependent.variable.name="shadow.Boruta.decision",  
+                     num.trees=500,importance="permutation",
+                     scale.permutation.importance=FALSE, # need oob.error to calculate permutation importance
+                     write.forest=FALSE)$variable.importance,
+  
+  B = ranger::ranger(data=x,dependent.variable.name="shadow.Boruta.decision", 
+                     num.trees=500,importance="impurity",
+                     scale.permutation.importance=FALSE,
+                     write.forest=FALSE,
+                     oob.error = FALSE)$variable.importance,
+  
+  C = ranger::ranger(data=x,dependent.variable.name="shadow.Boruta.decision", 
+                     num.trees=500,importance="impurity_corrected",
+                     scale.permutation.importance=FALSE,
+                      write.forest=FALSE,
+                     oob.error = FALSE)$variable.importance,
+  
+  D = ranger::holdoutRF(data=x,dependent.variable.name="shadow.Boruta.decision", 
+                    num.trees=500, # importance is always set to permutation
+                    scale.permutation.importance=FALSE,
+                    write.forest=FALSE),
+replications = 10)
+
+tmp <- ranger::holdoutRF(data=x,dependent.variable.name="shadow.Boruta.decision", 
+                  num.trees=500, # importance is always set to permutation
+                  scale.permutation.importance=FALSE,
+                  write.forest=FALSE)
+
+ranger_cv <- function(data, nfolds = 5, ...) {
+  
+}
+             
 
 # h2o.gbm, h2o.randomForest, h2o.deeplearning, h2o.xgboost
 # h2o.glm needs multinomial family
