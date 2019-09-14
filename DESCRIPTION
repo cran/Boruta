@@ -2,7 +2,7 @@ Package: Boruta
 Title: Wrapper Algorithm for All Relevant Feature Selection
 Version: 6.0.2
 Depends: ranger
-Suggests: mlbench, rFerns, randomForest, testthat, xgboost, h2o
+Suggests: mlbench, rFerns, randomForest, testthat, xgboost, h2o, cvTools
 Authors@R: c(
   person(
    c("Miron","Bartosz"),"Kursa",

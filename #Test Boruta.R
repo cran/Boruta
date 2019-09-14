@@ -18,6 +18,14 @@ Boruta.iris.extended2 <- ResumeBoruta(checkpoint = Boruta.iris.extended, y = iri
 print(Boruta.iris.extended)
 print(Boruta.iris.extended2)
 
+#Run Boruta on this data
+Boruta.iris.extended <- Boruta(y = iris.extended$Species, 
+                               x = iris.extended[,-which(colnames(iris.extended) == "Species")], 
+                               getImp = getImpCV,
+                               getUnderlyingImp = getImpRfZ,
+                               nfolds = 5,
+                               doTrace=2)
+
 # Same but using H2O randomForest
 # > head(x)
 # Sepal.Length Sepal.Width Petal.Length Petal.Width Nonsense1 Nonsense2 Nonsense3 Nonsense4
@@ -29,13 +37,14 @@ print(Boruta.iris.extended2)
 # 6          5.4         3.9          1.7         0.4       4.9       3.1       1.5       0.4
 
 library(h2o)
+# h2o.init(enable_assertions = FALSE)
 h2o.init()
 Boruta.iris.extended_h2o <- Boruta(y = iris.extended[, "Species"], 
                                    x = iris.extended[, setdiff(colnames(iris.extended), "Species")],
                                    getImp = getImpH2O,
                                    h2o_model_fn = h2o::h2o.randomForest,
                                    importance_type = "relative_importance",
-                                   model_id = "Boruta_h2o_test",
+                                   # model_id = "Boruta_h2o_test",
                                    # ntrees = 500,
                                    nfolds = 5,
                                    doTrace=2)
@@ -51,14 +60,16 @@ Boruta.iris.extended_h2o_2 <- ResumeBoruta(checkpoint = Boruta.iris.extended_h2o
                                           getImp = getImpH2O,
                                           h2o_model_fn = h2o::h2o.randomForest,
                                           importance_type = "relative_importance",
-                                          model_id = "Boruta_h2o_test",
+                                          # model_id = "Boruta_h2o_test",
                                           #ntrees = 500,
                                           nfolds = 5,
                                           maxAdditionalRuns = 100,
                                           doTrace=2)
 
 library(h2o)
-h2o.init()
+h2o.init(max_mem_size = "12G")
+# h2o.init(ip = "h2o_planetexpressship1", startH2O = FALSE)
+
 iris.hex <- as.h2o(iris.extended, destination_frame = "iris_extended")
 x <- h2o.assign(iris.hex[, setdiff(colnames(iris.hex), "Species")], "x")
 y <- h2o.assign(iris.hex[, "Species"], "y")
@@ -82,7 +93,7 @@ Boruta.iris.extended_h2o <- Boruta(y = y,
                                    getImp = getImpH2O,
                                    h2o_model_fn = h2o::h2o.randomForest,
                                    importance_type = "relative_importance",
-                                   model_id = "Boruta_h2o_test",
+                                   # model_id = "Boruta_h2o_test",
                                    ntrees = 100,
                                    nfolds = 5,
                                    maxRuns = 11,
@@ -90,17 +101,221 @@ Boruta.iris.extended_h2o <- Boruta(y = y,
 print(Boruta.iris.extended_h2o)
 plotImpHistory(Boruta.iris.extended_h2o)
 
+stopifnot(h2o.all(x == iris.hex[, setdiff(colnames(iris.hex), "Species")]),
+          h2o.all(y == iris.hex[, "Species"]))
+
 Boruta.iris.extended_h2o_2 <- ResumeBoruta(checkpoint = Boruta.iris.extended_h2o,
                                            y = y, 
                                            x = x,
                                            getImp = getImpH2O,
                                            h2o_model_fn = h2o::h2o.randomForest,
                                            importance_type = "relative_importance",
-                                           model_id = "Boruta_h2o_test",
+                                           # model_id = "Boruta_h2o_test",
                                            ntrees = 100,
                                            nfolds = 5,
                                            doTrace=2,
                                            maxAdditionalRuns = 100)
+
+
+#Run Boruta on this data
+Boruta.iris.extended <- Boruta(y = y, 
+                               x = x, 
+                               h2o_model_fn = h2o::h2o.randomForest,
+                               importance_type = "relative_importance",
+                               getImp = getImpCV,
+                               getUnderlyingImp = getImpH2O,
+                               nfolds = 5,
+                               doTrace=2)
+
+# run on larger data set
+# library(dplyr)
+h2o.init(max_mem_size = "12G")
+# h2o.init(ip = "h2o_planetexpressship1", startH2O = FALSE)
+h2o.removeAll()
+library(rbenchmark)
+batting.hex <- as.h2o(Lahman::Batting, destination_frame = "batting")
+h2o.impute(batting.hex)
+batting.hex <- h2o.merge(x = batting.hex,
+                         y = h2o.impute(batting.hex, method = "mode", column = "lgID", by = "teamID"),
+                         by = "teamID")
+batting.hex <- batting.hex[, -which(colnames(batting.hex) %in% c("lgID", "playerID"))]
+
+
+
+x <- h2o.assign(batting.hex[, -which(colnames(batting.hex) == "R")], "x")
+y <- h2o.assign(batting.hex[, "R"], "y")
+
+# single replication: 
+# test replications   elapsed relative user.self sys.self user.child sys.child
+# 1                  h2o            1 12829.305   25.016   601.085   34.465          0         0
+# 2            h2o_folds            1 11609.409   22.637   191.062   22.027          0         0
+# 3    h2o_outside_folds            1  2358.982    4.600   199.986    7.744          0         0
+# 4               ranger            1  1901.693    3.708  7238.204   14.722          0         0
+# 5 ranger_outside_folds            1   512.849    1.000  1941.673    3.356          0         0
+
+# 10 replications (and eliminating the copy for CV)
+# test replications   elapsed relative user.self sys.self user.child sys.child
+# 1    h2o_outside_folds           10 23996.821    4.554  1624.236   75.754      0.866     0.237
+# 2               ranger           10 19146.209    3.634 68858.546  275.979      0.000     0.000
+# 3 ranger_outside_folds           10  5268.847    1.000 19495.427   51.472      0.917     0.206
+
+
+benchmark(
+  # h2o = Boruta(x = x, 
+  #              y = y, 
+  #              getImp = getImpH2O,
+  #              h2o_model_fn = h2o::h2o.randomForest,
+  #              importance_type = "relative_importance",
+  #              ntrees = 100,
+  #              doTrace=2),
+  # 
+  # h2o_folds = Boruta(x = x, 
+  #                    y = y, 
+  #                    h2o_model_fn = h2o::h2o.randomForest,
+  #                    importance_type = "relative_importance",
+  #                    ntrees = 100,
+  #                    getImp = getImpH2O,
+  #                    nfolds = 5,
+  #                    doTrace=2),
+  
+  h2o_outside_folds = Boruta(x = x, 
+                             y = y, 
+                             getImp = getImpCV,
+                             nfolds = 5,
+                             getUnderlyingImp = getImpH2O,
+                             h2o_model_fn = h2o::h2o.randomForest,
+                             importance_type = "relative_importance",
+                             ntrees = 100,
+                             doTrace=2),
+  
+  ranger = Boruta(x = as.data.frame(x), 
+                  y = as.vector(y), 
+                  getImp = getImpRfZ,
+                  num.trees = 100,
+                  doTrace=2),
+  
+  ranger_outside_folds = Boruta(x = as.data.frame(x), 
+                                y = as.vector(y), 
+                                getImp = getImpCV,
+                                getUnderlyingImp = getImpRfZ,
+                                num.trees = 100,
+                                nfolds = 5,
+                                doTrace=2),
+  replications = 10
+)
+
+
+h2o.ls()
+colnames(xSha)
+colnames(h2o.getFrame("Boruta_xSha"))
+colnames(h2o.getFrame("RTMP_sid_8254_7"))
+dim(xSha)
+tail(xSha)
+
+
+
+print(Boruta.iris.extended)
+plotImpHistory(Boruta.iris.extended)
+
+stopifnot(h2o.all(x == batting.hex[, -which(colnames(batting.hex) == "R")]),
+          h2o.all(y == batting.hex[, "R"]))
+
+Boruta.iris.extended2 <- Boruta(y = batting.hex[, "R"], 
+                               x = batting.hex[, -which(colnames(batting.hex) == "R")], 
+                               h2o_model_fn = h2o::h2o.randomForest,
+                               importance_type = "relative_importance",
+                               getImp = getImpCV,
+                               getUnderlyingImp = getImpH2O,
+                               nfolds = 5,
+                               doTrace=2)
+
+print(Boruta.iris.extended2)
+plotImpHistory(Boruta.iris.extended2)
+
+stopifnot(h2o.all(x == batting.hex[, -which(colnames(batting.hex) == "R")]),
+          h2o.all(y == batting.hex[, "R"]))
+
+# iris_hf <- as.h2o(iris)
+# my_sample <- function(x, size, replace = FALSE, prob = NULL) {
+#   i <- runif(size)
+#   x[i]
+# }
+# 
+# summary(apply(iris_hf, 2, sample.int, size = nrow(iris_hf)))
+
+
+# test bugs for h2o shuffle
+h2o.shuffle_column <- function(dat, col) {
+  # shuffled_dat <- h2o.assign(dat, "shuffled_dat")
+  # dat <- h2o.assign(dat, "shuffle_column_dat")
+  
+  cols <- colnames(dat)
+  col_subset <- h2o.cbind(dat[, col, drop = FALSE], h2o.runif(dat))
+  
+  # col_subset <- h2o.assign(col_subset, "shuffle_column_cbind")
+  col_subset <- h2o.arrange(col_subset, "rnd")
+  # col_subset <- h2o.assign(col_subset, "shuffle_column_tmp")
+  
+  # shuffled_dat <- h2o.cbind(dat[, cols_to_keep], col_subset[, col, drop = FALSE])
+  # shuffled_dat <- shuffled_dat[, cols, drop = FALSE]
+  dat[, col] <-  col_subset[, col, drop = FALSE]
+  
+  # out <- h2o.assign(dat, "shuffled_dat")
+  # h2o.rm(col_subset)
+  # h2o.rm("shuffle_column_cbind")
+  # h2o.rm("shuffle_column_dat")
+  
+  
+  return(dat)
+}
+
+h2o.shuffle_column <- function(dat, col, copy_and_remove = FALSE) { 
+  h2o.no_progress()
+  dat[, col] <- as.h2o(sample(as.vector(dat[, col]), size = nrow(dat)), destination_frame = "shuffle_column_tmp")
+  h2o.show_progress()
+  
+  if(copy_and_remove) {
+    out <- h2o.assign(dat, "shuffled_dat")
+    h2o.rm("shuffle_column_tmp")
+    return(out)
+  }
+  
+  return(dat)
+}
+
+
+createCounter <- function(value) { function(i) { value <<- value+i; return(value)} }
+
+
+h2o.removeAll()
+x_orig <- h2o.assign(h2o.createFrame(rows = 1e05, cols = 100), "x_orig")
+x <- h2o.assign(x_orig, "x")
+
+tmp_fn <- function(x, copy_and_remove = FALSE) {
+  for(col in colnames(x)) {
+    cat(sprintf("%s ", col))
+    x <- h2o.shuffle_column(x, col, copy_and_remove)
+  }
+  cat("\n\n")
+}
+
+benchmark(
+  A = tmp_fn(x_orig, copy_and_remove = FALSE),
+  B = tmp_fn(x_orig, copy_and_remove = TRUE), # about 50% slower
+  replications = 10
+)
+
+counter <- createCounter(0)
+tmp <- replicate(5, {
+  # x_internal <- h2o.assign(x, "x_internal")
+  cat(sprintf("%d\n", counter(1)))
+  for(col in colnames(x)) {
+    cat(sprintf("%s ", col))
+    x <- h2o.shuffle_column(x, col)
+  }
+  cat("\n\n")
+})
+
 
 # test speed for h2o shuffle
 library(h2o)
@@ -238,9 +453,7 @@ tmp <- ranger::holdoutRF(data=x,dependent.variable.name="shadow.Boruta.decision"
                   scale.permutation.importance=FALSE,
                   write.forest=FALSE)
 
-ranger_cv <- function(data, nfolds = 5, ...) {
-  
-}
+
              
 
 # h2o.gbm, h2o.randomForest, h2o.deeplearning, h2o.xgboost

@@ -176,6 +176,7 @@ Boruta_internal_main_loop <- function(x,
 
   while (any(decReg == "Tentative") && (runs + 1 -> runs) <= maxRuns) {
     curImp <- addShadowsAndGetImp(decReg, runs, x, y, getImp, doTrace, ...)
+    # curImp <- Boruta:::addShadowsAndGetImp(decReg, runs, x, y, getImp, doTrace, nfolds = 5, h2o_model_fn = h2o::h2o.randomForest, importance_type = "relative_importance")
     
     # If more than one set of importances (e.g., from cross-validation), increment runs
     runs <- runs + nrow(curImp$imp.mat) - 1
@@ -403,19 +404,32 @@ print.Boruta <- function(x, ...) {
 #'
 #' Helper function to shuffle a single H2o column.
 #' @param dat An H2O frame or something that can be converted to one using as.h2o.
-#' @param col_idx Column index for the column to be shuffled.
+#' @param col Column to be shuffled, as character string.
+#' @param copy_and_remove Logical indicating if the returned data should be first copied to a new frame.
+#' Faster to not copy, but this will leave "shuffle_column_tmp" frame after the function returns. Defaults to FALSE.
 #' @return Shuffled H2O frame.
 #' @export
-h2o.shuffle_column <- function(dat, col_idx) {
-  col_name <- colnames(dat)[col_idx]
+h2o.shuffle_column <- function(dat, col, copy_and_remove = FALSE) { 
+  h2o.no_progress()
+  dat[, col] <- as.h2o(sample(as.vector(dat[, col]), size = nrow(dat)), destination_frame = "shuffle_column_tmp")
+  h2o.show_progress()
   
-  col <- dat[, col_name]
-  col <- h2o.cbind(col, h2o.runif(col))
-  col <- h2o.arrange(col, "rnd")
-  dat[, col_name] <- col[, col_name]
+  if(copy_and_remove) {
+    out <- h2o.assign(dat, "shuffled_dat")
+    h2o.rm("shuffle_column_tmp")
+    return(out)
+  }
   
-  invisible(dat)
+  return(dat)
 }
+# h2o.shuffle_column <- function(dat, col) {
+#   col_subset <- dat[, col, drop = FALSE]
+#   col_subset2 <- h2o.cbind(col_subset, h2o.runif(col_subset))
+#   col_subset3 <- h2o.arrange(col_subset2, "rnd")
+#   dat[, col] <- col_subset3[, col, drop = FALSE]
+#   
+#   invisible(dat)
+# }
 
 # h2o.shuffle_column <- function(dat, col_idx) {
 # 
@@ -551,9 +565,10 @@ addShadowsAndGetImp <- function(decReg, runs, x, y, getImp, doTrace, ...) {
     if(!requireNamespace("h2o", quietly = TRUE)) {
       stop("Please install h2o package to use getImpH2O.")
     }
-    x <- h2o::h2o.assign(x, "Boruta_x")
-    y <- h2o::h2o.assign(y, "Boruta_y")
+    # x <- h2o::h2o.assign(x, "Boruta_x")
+    # y <- h2o::h2o.assign(y, "Boruta_y")
     xSha <- h2o::h2o.assign(x[, decReg != "Rejected", drop = F], "Boruta_xSha")
+    on.exit(h2o::h2o.rm("Boruta_xSha"), add = TRUE)
     # print(h2o::h2o.ls())
   } else {
     xSha <- x[, decReg != "Rejected", drop = F]
@@ -570,21 +585,18 @@ addShadowsAndGetImp <- function(decReg, runs, x, y, getImp, doTrace, ...) {
    
   
   #Now, we permute values in each attribute (shuffle the shadow features)
-  nSha <- ncol(xSha)
   
   if(inherits(xSha, "H2OFrame")) {
     if (doTrace > 2) 
       message(sprintf('Shuffling H2O columns'))
-    for(i in seq_len(nSha)) {
-      xSha <- h2o.shuffle_column(xSha, i)
+    for(col in colnames(xSha)) {
+      xSha <- h2o.shuffle_column(xSha, col)
     }
-    # confirm shuffle
-    stopifnot(!all(as.vector(x[,1]) == as.vector(xSha[, 1])))
-    # h2o::h2o.rm("shuffle_column_result")
-    # print(h2o::h2o.ls())
+    
   } else {
     xSha <- data.frame(lapply(xSha, sample)) 
   }
+  nSha <- ncol(xSha)
   namesSha <- paste('shadow', 1:nSha, sep = "")
   names(xSha) <- namesSha
 
@@ -599,19 +611,17 @@ addShadowsAndGetImp <- function(decReg, runs, x, y, getImp, doTrace, ...) {
     combined_x <- cbind(x[, decReg != "Rejected"], xSha)
   }
   
-  
-  
   #Calling importance source; "..." can be used by the user to pass rf attributes (for instance ntree)
   impRaw <- getImp(x = combined_x, y = y, ...)
   
-  if(inherits(xSha, "H2OFrame")) {
-    # print(h2o::h2o.ls())
-    # h2o::h2o.rm("Boruta_combined_x")
-    h2o::h2o.rm("Boruta_xSha")
-    h2o::h2o.rm("Boruta_x")
-    h2o::h2o.rm("Boruta_y")
-    # print(h2o::h2o.ls())
-  }
+  # if(inherits(xSha, "H2OFrame")) {
+  #   # print(h2o::h2o.ls())
+  #   # h2o::h2o.rm("Boruta_combined_x")
+  #   h2o::h2o.rm("Boruta_xSha")
+  #   # h2o::h2o.rm("Boruta_x")
+  #   # h2o::h2o.rm("Boruta_y")
+  #   # print(h2o::h2o.ls())
+  # }
   
   if((is.vector(impRaw) & !is.numeric(impRaw)) & !is.matrix(impRaw)) {
     stop("getImp result is not a numeric vector or a matrix. Please check the given getImp function.")

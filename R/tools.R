@@ -254,3 +254,7 @@ getNonRejectedFormula<-function(x){
  preds<-paste(names(x$finalDecision)[x$finalDecision!='Rejected'],collapse="+")
  return(stats::as.formula(sprintf('%s~%s',dec,preds)))
 }
+
+
+
+

@@ -4,12 +4,15 @@
 \alias{h2o.shuffle_column}
 \title{Shuffle H2O column.}
 \usage{
-h2o.shuffle_column(dat, col_idx)
+h2o.shuffle_column(dat, col, copy_and_remove = FALSE)
 }
 \arguments{
 \item{dat}{An H2O frame or something that can be converted to one using as.h2o.}
 
-\item{col_idx}{Column index for the column to be shuffled.}
+\item{col}{Column to be shuffled, as character string.}
+
+\item{copy_and_remove}{Logical indicating if the returned data should be first copied to a new frame.
+Faster to not copy, but this will leave "shuffle_column_tmp" frame after the function returns. Defaults to FALSE.}
 }
 \value{
 Shuffled H2O frame.

@@ -236,10 +236,12 @@ getImpH2O <- function(x, y,
   
   if("nfolds" %in% names(args)) message(sprintf("Using nfolds = %d.", args$nfolds))
   
-  if(!h2o::is.h2o(x)) x <- h2o::as.h2o(x, destination_frame = "getImpH2O_x")
-  if(!h2o::is.h2o(y)) y <- h2o::as.h2o(y, destination_frame = "getImpH2O_y")
+  # if(!h2o::is.h2o(x)) x <- h2o::as.h2o(x, destination_frame = "getImpH2O_x")
+  # if(!h2o::is.h2o(y)) y <- h2o::as.h2o(y, destination_frame = "getImpH2O_y")
   
-  args$training_frame <- h2o.assign(h2o::h2o.cbind(x, y), "getImpH2O_training_frame")
+  args$training_frame <- h2o::h2o.cbind(x, y)
+  # args$training_frame <- h2o.assign(h2o::h2o.cbind(x, y), "getImpH2O_training_frame")
+  # on.exit(h2o::h2o.rm("getImpH2O_training_frame"), add = TRUE)
   args$x <- colnames(x)
   args$y <- colnames(y)
   args$model_id <- model_id
@@ -271,16 +273,58 @@ getImpH2O <- function(x, y,
     }
   } 
   
-  h2o::h2o.rm("getImpH2O_training_frame")
   
-  if(is.null(model_id)) 
+  
+  if(is.null(model_id)) { 
+    # drop model and cv models, if applicable
+    cv_models <- h2o.cross_validation_models(h2o_model.hex)
+    if(!is.null(cv_models)) {
+      h2o.rm(cv_models)
+    }
+    
     h2o::h2o.rm(h2o_model.hex)
+  }
   
-  if("getImpH2O_x" %in% h2o::h2o.ls()$key) h2o::h2o.rm("getImpH2O_x")
-  if("getImpH2O_y" %in% h2o::h2o.ls()$key) h2o::h2o.rm("getImpH2O_y")
+  # if("getImpH2O_x" %in% h2o::h2o.ls()$key) h2o::h2o.rm("getImpH2O_x")
+  # if("getImpH2O_y" %in% h2o::h2o.ls()$key) h2o::h2o.rm("getImpH2O_y")
   
   return(out)
 }
 
 comment(getImpH2O)<-'h2o importance'
 
+
+#' CV importance
+#'
+#' This function is intended to be given to a \code{getImp} argument of \code{\link{Boruta}} function to be called by the Boruta algorithm as an importance source.
+#' The getImp is called repeatedly on cross-validation subsets of the data.
+#' 
+#' @param x data frame of predictors including shadows. Will be either H2O Frame or a vector.
+#' @param y response vector. Will be either H2O Frame or a vector.
+#' @param nfolds Number of folds (random data subsets) to use.
+#' @param getUnderlyingImp Underlying importance function to call for each cross-validation subset.
+#' @param ... other parameters passed to the underlying h2o getImp call.
+#' @export
+getImpCV <- function(x,y, nfolds = 5, getUnderlyingImp = getImpRfZ, ...) {
+  folds <- sample.int(nfolds, size = nrow(x), replace = TRUE)
+  
+  
+  
+  out <- sapply(1:nfolds, function(i, getUnderlyingImp, x, y, folds, ...) {
+    # if(inherits(x, "H2OFrame")) 
+    #   x <- h2o::h2o.assign(x, "getImpCV_x")
+    # if(inherits(x, "H2OFrame")) 
+    #   y <- h2o::h2o.assign(y, "getImpCV_y")
+    
+    cv_idx <- which(folds == i)
+    if(is.null(dim(y))) {
+      y_cv <- y[cv_idx]
+    } else {
+      y_cv <- y[cv_idx,]
+    }
+    getUnderlyingImp(x[cv_idx, ], y = y_cv, ...)
+  }, getUnderlyingImp = getUnderlyingImp, x = x, y = y, folds = folds, ...)
+  
+  return(t(out))
+}
+comment(getImpCV)<-'cross-validation importance'
