@@ -211,6 +211,7 @@ Boruta_internal_main_loop <- function(x,
     impSource = comment(getImp),
     hits = hitReg
   )
+  
   "Boruta" -> class(ans)
   
   return(ans)
@@ -283,7 +284,7 @@ ResumeBoruta <-
     }
     
     ##Main loop
-    Boruta_internal_main_loop(x = x, 
+    ans <- Boruta_internal_main_loop(x = x, 
                               y = y,
                               pValue = pValue,
                               mcAdj = mcAdj,
@@ -300,6 +301,9 @@ ResumeBoruta <-
                               
                               ...)
     
+    # include prior time in the total time taken
+    ans$timeTaken <- ans$timeTaken + checkpoint$timeTaken
+    return(ans)
   }
 
 .attListPrettyPrint <- function(x, limit = 5) {
