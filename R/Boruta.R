@@ -19,12 +19,19 @@ Boruta <- function(x, ...)
 #' Any order-preserving transformation of this measure will yield the same result.
 #' It is assumed that more important attributes get higher importance. +-Inf are accepted, NaNs and NAs are treated as 0s, with a warning.
 #' @param pValue confidence level. Default value should be used.
-#' @param mcAdj if set to \code{TRUE}, a multiple comparisons adjustment using the Bonferroni method will be applied. Default value should be used; older (1.x and 2.x) versions of Boruta were effectively using \code{FALSE}.
+#' @param mcAdj If set to "bonferroni", a multiple comparisons adjustment using the Bonferroni method will be applied. 
+#' If set to "fdr" will use the two-step correction using Benjamini Hochberg FDR as described in https://github.com/scikit-learn-contrib/boruta_py. 
+#' Older (1.x and 2.x) versions of Boruta were effectively using "none." 
 #' @param maxRuns maximal number of importance source runs.
 #' You may increase it to resolve attributes left Tentative.
 #' @param holdHistory if set to \code{TRUE}, the full history of importance is stored and returned as the \code{ImpHistory} element of the result.
 #' Can be used to decrease a memory footprint of Boruta in case this side data is not used, especially when the number of attributes is huge; yet it disables plotting of such made \code{Boruta} objects and the use of the \code{\link{TentativeRoughFix}} function.
 #' @param doTrace verbosity level. 0 means no tracing, 1 means reporting decision about each attribute as soon as it is justified, 2 means the same as 1, plus reporting each importance source run, 3 means the same as 2, plus reporting of hits assigned to yet undecided attributes.
+#' @param percentile Instead of the max we use the percentile defined by the user, 
+#' to pick our threshold for comparison between shadow and real features. The max tend to be too stringent. 
+#' This provides a finer control over this. The lower perc is the more false positives will be picked as relevant 
+#' but also the less relevant features will be left out. The usual trade-off. The default is essentially the vanilla 
+#' Boruta corresponding to the max.
 #' @param ... additional parameters passed to \code{getImp}.
 #' @return An object of class \code{Boruta}, which is a list with the following components:
 #' \item{finalDecision}{a factor of three value: \code{Confirmed}, \code{Rejected} or \code{Tentative}, containing final result of feature selection.}
@@ -96,16 +103,19 @@ Boruta.default <-
   function(x,
            y,
            pValue = 0.01,
-           mcAdj = TRUE,
+           mcAdj = c("bonferroni", "fdr", "none"),
            maxRuns = 100,
            doTrace = 0,
            holdHistory = TRUE,
            getImp = getImpRfZ,
+           percentile = 1,
            ...) {
     
     #Extract the call to store in output
     cl <- match.call()
     cl[[1]] <- as.name('Boruta')
+    
+    mcAdj <- match.arg(mcAdj)
     
     #Convert x into a data.frame
     if (!is.data.frame(x) & !inherits(x, "H2OFrame")) x <- data.frame(x)
@@ -127,6 +137,7 @@ Boruta.default <-
                               doTrace = doTrace,
                               holdHistory = holdHistory,
                               getImp = getImp, 
+                              percentile = percentile,
                               
                               cl = cl,
                               ...)
@@ -141,6 +152,7 @@ Boruta_internal_main_loop <- function(x,
                                       doTrace,
                                       holdHistory,
                                       getImp,
+                                      percentile = 1,
                                       
                                       decReg, 
                                       hitReg, 
@@ -181,7 +193,7 @@ Boruta_internal_main_loop <- function(x,
     # If more than one set of importances (e.g., from cross-validation), increment runs
     runs <- runs + nrow(curImp$imp.mat) - 1
     
-    hitReg <- assignHits(hitReg, curImp, doTrace)
+    hitReg <- assignHits(hitReg, curImp, doTrace, percentile = percentile)
     decReg <- doTests(decReg, hitReg, runs, mcAdj, pValue, doTrace, timeStart)
     
     #If needed, update impHistory with scores obtained in this iteration
@@ -248,10 +260,11 @@ ResumeBoruta <-
            maxAdditionalRuns = 10,
            numPriorRuns = nrow(checkpoint$ImpHistory),
            pValue = 0.01,
-           mcAdj = TRUE,
+           mcAdj = c("bonferroni", "fdr", "none"),
            doTrace = 0,
            holdHistory = TRUE,
            getImp = getImpRfZ,
+           percentile = 1,
            ...) {
     if (class(checkpoint) != 'Boruta')
       stop("This is NOT a Boruta object!")
@@ -260,6 +273,7 @@ ResumeBoruta <-
     if (checkpoint$roughfixed)
       warning("Boruta resume should only be run on Boruta objects prior to rough fix.")
     
+    mcAdj <- match.arg(mcAdj)
    
     #Convert x into a data.frame
     if (!is.data.frame(x) & !inherits(x, "H2OFrame")) x <- data.frame(x)
@@ -292,6 +306,7 @@ ResumeBoruta <-
                               doTrace = doTrace,
                               holdHistory = holdHistory,
                               getImp = getImp,
+                              percentile = percentile,
                               
                               decReg = checkpoint$finalDecision, 
                               hitReg = checkpoint$hits, 
@@ -659,22 +674,22 @@ addShadowsAndGetImp <- function(decReg, runs, x, y, getImp, doTrace, ...) {
 }
 
 ##Assigns hits
-assignHits <- function(hitReg, curImp, doTrace) {
-
-  hits.mat <- curImp$imp.mat > apply(curImp$shaImp.mat, 1, max)
+assignHits <- function(hitReg, curImp, doTrace, percentile = 1) {
+  hits.mat <- curImp$imp.mat > apply(curImp$shaImp.mat, 1, quantile, probs = percentile)
   if (doTrace > 2) {
     uncMask <- decReg == "Tentative"
     intHits <- sum(hits.mat[,uncMask])
     if (intHits > 0)
       message(
         sprintf(
-          "Assigned hit to %s attribute%s out of %s undecided.",
+          "Assigned hit to %s attribute%s out of %s undecided using percentile %.03f.",
           sum(colSums(hits.mat) > 0),
           if (intHits == 1)
             ""
           else
             "s",
-          sum(uncMask)
+          sum(uncMask),
+          percentile
         )
       )
     else
@@ -689,26 +704,43 @@ doTests <-
   function(decReg,
            hitReg,
            runs,
-           mcAdj,
+           mcAdj = c("bonferroni", "fdr", "none"),
            pValue,
            doTrace,
            timeStart) {
-    pAdjMethod <- ifelse(mcAdj[1], 'bonferroni', 'none')
-    #If attribute is significantly more frequent better than shadowMax, its claimed Confirmed
-    toAccept <-
-      stats::p.adjust(stats::pbinom(hitReg - 1, runs, 0.5, lower.tail = FALSE),
-                      method = pAdjMethod) < pValue
-    (decReg == "Tentative" & toAccept) -> toAccept
     
-    #If attribute is significantly more frequent worse than shadowMax, its claimed Rejected (=irrelevant)
-    toReject <-
-      stats::p.adjust(stats::pbinom(hitReg, runs, 0.5, lower.tail = TRUE), method =
-                        pAdjMethod) < pValue
-    (decReg == "Tentative" & toReject) -> toReject
+    mcAdj <- match.arg(mcAdj)
     
+    # uncorrected p values based on hits
+    to_accept_uncorrected_ps <- stats::pbinom(hitReg - 1, runs, 0.5, lower.tail = FALSE)
+    to_reject_uncorrected_ps <- stats::pbinom(hitReg, runs, 0.5, lower.tail = TRUE)
+    
+    toAccept <- stats::p.adjust(to_accept_uncorrected_ps, method = mcAdj) < pValue
+    toReject <- stats::p.adjust(to_reject_uncorrected_ps, method = mcAdj) < pValue
+    
+    if(mcAdj == "fdr") {
+      # two step multicor process
+      # first we correct for testing several features in each round using FDR (toAccept and toReject, above)
+      
+      # second we correct for testing the same feature over and over again
+      # using bonferroni
+      to_accept_bf = to_accept_uncorrected_ps < pValue / runs # logical
+      to_reject_bf = to_reject_uncorrected_ps < pValue / runs
+      
+      # combine the two multi corrections, and get indexes
+      toAccept <- toAccept & to_accept_bf
+      toReject <- toAccept & to_reject_bf
+      
+    } 
+    # If attribute is significantly more frequent better than shadowMax, its claimed Confirmed
+    toAccept <- (decReg == "Tentative" & toAccept)
+      
+    # If attribute is significantly more frequent worse than shadowMax, its claimed Rejected (=irrelevant)
+    toReject <- (decReg == "Tentative" & toReject)
+      
     #Update decReg
     decReg[toAccept] <- "Confirmed"
-    "Rejected" -> decReg[toReject]
+    decReg[toReject] <- "Rejected"
     
     #Report progress
     if (doTrace > 0) {
