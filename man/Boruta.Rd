@@ -9,14 +9,14 @@
 \usage{
 Boruta(x, ...)
 
-\method{Boruta}{default}(x, y, pValue = 0.01, mcAdj = TRUE,
-  maxRuns = 100, doTrace = 0, holdHistory = TRUE,
-  getImp = getImpRfZ, ...)
+\method{Boruta}{default}(x, y, pValue = 0.01, mcAdj = c("bonferroni",
+  "fdr", "none"), maxRuns = 100, doTrace = 0, holdHistory = TRUE,
+  getImp = getImpRfZ, percentile = 1, ...)
 
 ResumeBoruta(checkpoint, x, y, maxAdditionalRuns = 10,
   numPriorRuns = nrow(checkpoint$ImpHistory), pValue = 0.01,
-  mcAdj = TRUE, doTrace = 0, holdHistory = TRUE,
-  getImp = getImpRfZ, ...)
+  mcAdj = c("bonferroni", "fdr", "none"), doTrace = 0,
+  holdHistory = TRUE, getImp = getImpRfZ, percentile = 1, ...)
 
 \method{Boruta}{formula}(formula, data = .GlobalEnv, ...)
 }
@@ -29,7 +29,9 @@ ResumeBoruta(checkpoint, x, y, maxAdditionalRuns = 10,
 
 \item{pValue}{confidence level. Default value should be used.}
 
-\item{mcAdj}{if set to \code{TRUE}, a multiple comparisons adjustment using the Bonferroni method will be applied. Default value should be used; older (1.x and 2.x) versions of Boruta were effectively using \code{FALSE}.}
+\item{mcAdj}{If set to "bonferroni", a multiple comparisons adjustment using the Bonferroni method will be applied. 
+If set to "fdr" will use the two-step correction using Benjamini Hochberg FDR as described in https://github.com/scikit-learn-contrib/boruta_py. 
+Older (1.x and 2.x) versions of Boruta were effectively using "none."}
 
 \item{maxRuns}{maximal number of importance source runs.
 You may increase it to resolve attributes left Tentative.}
@@ -44,6 +46,12 @@ The default is getImpRfZ, which runs random forest from the \code{ranger} packag
 It should return a numeric vector of a size identical to the number of columns of its first argument, containing importance measure of respective attributes.
 Any order-preserving transformation of this measure will yield the same result.
 It is assumed that more important attributes get higher importance. +-Inf are accepted, NaNs and NAs are treated as 0s, with a warning.}
+
+\item{percentile}{Instead of the max we use the percentile defined by the user, 
+to pick our threshold for comparison between shadow and real features. The max tend to be too stringent. 
+This provides a finer control over this. The lower perc is the more false positives will be picked as relevant 
+but also the less relevant features will be left out. The usual trade-off. The default is essentially the vanilla 
+Boruta corresponding to the max.}
 
 \item{checkpoint}{Boruta object with which to resume training..}
 

@@ -729,7 +729,7 @@ doTests <-
       
       # combine the two multi corrections, and get indexes
       toAccept <- toAccept & to_accept_bf
-      toReject <- toAccept & to_reject_bf
+      toReject <- toReject & to_reject_bf
       
     } 
     # If attribute is significantly more frequent better than shadowMax, its claimed Confirmed
