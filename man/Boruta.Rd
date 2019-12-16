@@ -3,13 +3,20 @@
 \name{Boruta}
 \alias{Boruta}
 \alias{Boruta.default}
+\alias{ResumeBoruta}
 \alias{Boruta.formula}
 \title{Feature selection with the Boruta algorithm}
 \usage{
 Boruta(x, ...)
 
-\method{Boruta}{default}(x, y, pValue = 0.01, mcAdj = TRUE, maxRuns = 100,
-  doTrace = 0, holdHistory = TRUE, getImp = getImpRfZ, ...)
+\method{Boruta}{default}(x, y, pValue = 0.01, mcAdj = c("bonferroni",
+  "fdr", "none"), maxRuns = 100, doTrace = 0, holdHistory = TRUE,
+  getImp = getImpRfZ, percentile = 1, ...)
+
+ResumeBoruta(checkpoint, x, y, maxAdditionalRuns = 10,
+  numPriorRuns = nrow(checkpoint$ImpHistory), pValue = 0.01,
+  mcAdj = c("bonferroni", "fdr", "none"), doTrace = 0,
+  holdHistory = TRUE, getImp = getImpRfZ, percentile = 1, ...)
 
 \method{Boruta}{formula}(formula, data = .GlobalEnv, ...)
 }
@@ -22,7 +29,9 @@ Boruta(x, ...)
 
 \item{pValue}{confidence level. Default value should be used.}
 
-\item{mcAdj}{if set to \code{TRUE}, a multiple comparisons adjustment using the Bonferroni method will be applied. Default value should be used; older (1.x and 2.x) versions of Boruta were effectively using \code{FALSE}.}
+\item{mcAdj}{If set to "bonferroni", a multiple comparisons adjustment using the Bonferroni method will be applied. 
+If set to "fdr" will use the two-step correction using Benjamini Hochberg FDR as described in https://github.com/scikit-learn-contrib/boruta_py. 
+Older (1.x and 2.x) versions of Boruta were effectively using "none."}
 
 \item{maxRuns}{maximal number of importance source runs.
 You may increase it to resolve attributes left Tentative.}
@@ -37,6 +46,18 @@ The default is getImpRfZ, which runs random forest from the \code{ranger} packag
 It should return a numeric vector of a size identical to the number of columns of its first argument, containing importance measure of respective attributes.
 Any order-preserving transformation of this measure will yield the same result.
 It is assumed that more important attributes get higher importance. +-Inf are accepted, NaNs and NAs are treated as 0s, with a warning.}
+
+\item{percentile}{Instead of the max we use the percentile defined by the user, 
+to pick our threshold for comparison between shadow and real features. The max tend to be too stringent. 
+This provides a finer control over this. The lower perc is the more false positives will be picked as relevant 
+but also the less relevant features will be left out. The usual trade-off. The default is essentially the vanilla 
+Boruta corresponding to the max.}
+
+\item{checkpoint}{Boruta object with which to resume training..}
+
+\item{maxAdditionalRuns}{Maximum number of additional importance source runs.}
+
+\item{numPriorRuns}{Number of runs previously attempted. Not needed if the checkpoint Boruta object contains importance history.}
 
 \item{formula}{alternatively, formula describing model to be analysed.}
 
@@ -56,6 +77,8 @@ Set to \code{NULL} if \code{holdHistory} was given \code{FALSE}.}
 \description{
 Boruta is an all relevant feature selection wrapper algorithm, capable of working with any classification method that output variable importance measure (VIM); by default, Boruta uses Random Forest.
 The method performs a top-down search for relevant features by comparing original attributes' importance with importance achievable at random, estimated using their permuted copies, and progressively eliminating irrelevant features to stabilise that test.
+
+Resume feature selection from Boruta object.
 }
 \details{
 Boruta iteratively compares importances of attributes with importances of shadow attributes, created by shuffling original ones.
@@ -67,6 +90,10 @@ If the second scenario occurs, some attributes may be left without a decision.
 They are claimed Tentative.
 You may try to extend \code{maxRuns} or lower \code{pValue} to clarify them, but in some cases their importances do fluctuate too much for Boruta to converge.
 Instead, you can use \code{\link{TentativeRoughFix}} function, which will perform other, weaker test to make a final decision, or simply treat them as undecided in further analysis.
+
+See \code{\link{Boruta}} for details of the feature selection algorithm. 
+Run Boruta and then pass in that object to resume feature selection, when
+features remain tentative.
 }
 \examples{
 set.seed(777)
@@ -112,6 +139,18 @@ print(Bor.son)
 #Shows important bands
 plot(Bor.son,sort=FALSE)
 }
+set.seed(777)
+#Add some nonsense attributes to iris dataset by shuffling original attributes
+iris.extended<-data.frame(iris,apply(iris[,-5],2,sample))
+names(iris.extended)[6:9]<-paste("Nonsense",1:4,sep="")
+#Run Boruta on this data
+Boruta.iris.extended <- Boruta(y = iris.extended$Species, x = iris.extended[,-which(colnames(iris.extended) == "Species")], doTrace=2)
+#Nonsense attributes should be rejected, except 1
+print(Boruta.iris.extended)
+Boruta.iris.extended2 <- ResumeBoruta(y = iris.extended$Species, x = iris.extended[,-which(colnames(iris.extended) == "Species")], checkpoint = Boruta.iris.extended, maxAdditionalRuns=1000, doTrace=2)
+#Last nonsense attribute shoudl be confirmed important.
+print(Boruta.iris.extended)
+print(Boruta.iris.extended2)
 }
 \references{
 Miron B. Kursa, Witold R. Rudnicki (2010). Feature Selection with the Boruta Package.

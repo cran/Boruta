@@ -4,9 +4,9 @@
 \alias{plotImpHistory}
 \title{Plot Boruta object as importance history}
 \usage{
-plotImpHistory(x, colCode = c("green", "yellow", "red", "blue"), col = NULL,
-  type = "l", lty = 1, pch = 0, xlab = "Classifier run",
-  ylab = "Importance", ...)
+plotImpHistory(x, colCode = c("green", "yellow", "red", "blue"),
+  col = NULL, type = "l", lty = 1, pch = 0,
+  xlab = "Classifier run", ylab = "Importance", ...)
 }
 \arguments{
 \item{x}{an object of a class Boruta.}
