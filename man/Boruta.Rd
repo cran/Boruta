@@ -8,8 +8,17 @@
 \usage{
 Boruta(x, ...)
 
-\method{Boruta}{default}(x, y, pValue = 0.01, mcAdj = TRUE, maxRuns = 100,
-  doTrace = 0, holdHistory = TRUE, getImp = getImpRfZ, ...)
+\method{Boruta}{default}(
+  x,
+  y,
+  pValue = 0.01,
+  mcAdj = TRUE,
+  maxRuns = 100,
+  doTrace = 0,
+  holdHistory = TRUE,
+  getImp = getImpRfZ,
+  ...
+)
 
 \method{Boruta}{formula}(formula, data = .GlobalEnv, ...)
 }
@@ -70,17 +79,37 @@ Instead, you can use \code{\link{TentativeRoughFix}} function, which will perfor
 }
 \examples{
 set.seed(777)
-#Add some nonsense attributes to iris dataset by shuffling original attributes
+
+#Boruta on the "small redundant XOR" problem; read ?srx for details
+data(srx)
+Boruta(Y~.,data=srx)->Boruta.srx
+
+#Results summary
+print(Boruta.srx)
+
+#Result plot
+plot(Boruta.srx)
+
+#Attribute statistics
+attStats(Boruta.srx)
+
+#Using alternative importance source, rFerns
+Boruta(Y~.,data=srx,getImp=getImpFerns)->Boruta.srx.ferns
+print(Boruta.srx.ferns)
+
+#Verbose
+Boruta(Y~.,data=srx,doTrace=2)->Boruta.srx
+
+\dontrun{
+#Boruta on the iris problem extended with artificial irrelevant features
+#Generate said features
 iris.extended<-data.frame(iris,apply(iris[,-5],2,sample))
 names(iris.extended)[6:9]<-paste("Nonsense",1:4,sep="")
 #Run Boruta on this data
 Boruta(Species~.,data=iris.extended,doTrace=2)->Boruta.iris.extended
 #Nonsense attributes should be rejected
 print(Boruta.iris.extended)
-
-#Boruta using rFerns' importance
-Boruta(Species~.,data=iris.extended,getImp=getImpFerns)->Boruta.ferns.irisE
-print(Boruta.ferns.irisE)
+}
 
 \dontrun{
 #Boruta on the HouseVotes84 data from mlbench
@@ -98,9 +127,9 @@ library(mlbench); data(Ozone)
 library(randomForest)
 na.omit(Ozone)->ozo
 Boruta(V4~.,data=ozo,doTrace=2)->Bor.ozo
-cat('Random forest run on all attributes:\\n')
+cat('Random forest run on all attributes:\n')
 print(randomForest(V4~.,data=ozo))
-cat('Random forest run only on confirmed attributes:\\n')
+cat('Random forest run only on confirmed attributes:\n')
 print(randomForest(ozo[,getSelectedAttributes(Bor.ozo)],ozo$V4))
 }
 \dontrun{

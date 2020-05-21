@@ -4,9 +4,16 @@
 \alias{plot.Boruta}
 \title{Plot Boruta object}
 \usage{
-\method{plot}{Boruta}(x, colCode = c("green", "yellow", "red", "blue"),
-  sort = TRUE, whichShadow = c(TRUE, TRUE, TRUE), col = NULL,
-  xlab = "Attributes", ylab = "Importance", ...)
+\method{plot}{Boruta}(
+  x,
+  colCode = c("green", "yellow", "red", "blue"),
+  sort = TRUE,
+  whichShadow = c(TRUE, TRUE, TRUE),
+  col = NULL,
+  xlab = "Attributes",
+  ylab = "Importance",
+  ...
+)
 }
 \arguments{
 \item{x}{an object of a class Boruta.}

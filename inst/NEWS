@@ -1,3 +1,10 @@
+Changes in 7.0:
+ - Migration from NotABug to GitLab.
+ - Improved testing.
+ - Improved Xgboost adapter.
+ - Xgboost adapter fixed to pass `...` to xgboost function. (Thanks 
+ to `ObsoleteVersion` for spotting this)
+
 Changes in 6.0:
  - Migration from GitHub to NotABug.
  - Additional verbosity level, doTrace=3.

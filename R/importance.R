@@ -73,7 +73,6 @@ comment(getImpLegacyRfGini)<-'randomForest Gini index importance'
 #' @param num.trees  Number of trees in the forest, as according to \code{\link{ranger}}'s nomenclature. If not given, set to \code{ntree} value. If both are given, \code{num.trees} takes precedence.
 #' @param ... parameters passed to the underlying \code{\link{ranger}} call; they are relayed from \code{...} of \code{\link{Boruta}}.
 #' @note Prior to Boruta 5.0, \code{getImpLegacyRfZ} function was a default importance source in Boruta; see \link{getImpLegacyRf} for more details.
-#' @import ranger
 #' @export
 getImpRfZ<-function(x,y,ntree=500,num.trees=ntree,...){
  if(inherits(y,"Surv")){
@@ -178,6 +177,8 @@ comment(getImpFerns)<-'rFerns importance'
 #' Xgboost importance
 #'
 #' This function is intended to be given to a \code{getImp} argument of \code{\link{Boruta}} function to be called by the Boruta algorithm as an importance source.
+#' This functionality is inspired by the Python package BoostARoota by Chase DeHan.
+#' In practice, due to the eager way XgBoost works, this adapter changes Boruta into minimal optimal method, hence I strongly recommend against using this.
 #' @param x data frame of predictors including shadows.
 #' @param y response vector.
 #' @param nrounds Number of rounds; passed to the underlying \code{\link[xgboost]{xgboost}} call.
@@ -187,22 +188,21 @@ comment(getImpFerns)<-'rFerns importance'
 #' For convenience, this function sets \code{nrounds} to 5 and verbose to 0, but this can be overridden.
 #' @note Only dense matrix interface is supported; all predictions given to \code{\link{Boruta}} call have to be numeric (not integer).
 #' Categorical features should be split into indicator attributes.
-#' This functionality is inspired by the Python package BoostARoota by Chase DeHan.
-#' I have some doubts whether boosting importance can be used for all relevant selection without hitting substantial false negative rates; please consider this functionality experimental.
 #' @references \url{https://github.com/chasedehan/BoostARoota}
 #' @export
-
 getImpXgboost<-function(x,y,nrounds=5,verbose=0,...){
+ for(e in 1:ncol(x)) x[,e]<-as.numeric(x[,e])
  xgboost::xgb.importance(
   model=xgboost::xgboost(
    data=as.matrix(x),
    label=y,
    nrounds=nrounds,
-   verbose=verbose
+   verbose=verbose,
+   ...
   )
  )->imp
- rep(0,ncol(x))->ans
- ans[as.numeric(imp$Feature)+1]<-imp$Gain
+ stats::setNames(rep(0,ncol(x)),colnames(x))->ans
+ ans[imp$Feature]<-imp$Gain
  ans
 }
 comment(getImpXgboost)<-'xgboost gain importance'

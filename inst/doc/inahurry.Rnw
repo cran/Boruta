@@ -70,19 +70,17 @@ Under the hood, Boruta uses feature importance scores which are provided by cert
 Such scores only contribute to the ranking of features, though --- to separate relevant features, we need some reference of what is a distribution of importance of an irrelevant feature.
 To this end, Boruta uses \textit{shadow features} or \textit{shadows}, which are copies of original features but with randomly mixed values, so that their distribution remains the same yet their importance is wiped out.
 
-\begin{figure}
-<<BorutaPlots,fig=TRUE,echo=FALSE,results=hide,width=10,height=5>>=
-par(mfrow=c(1,2))
-plot(BorutaOnIrisE)
-plotImpHistory(BorutaOnIrisE)
-@
-\caption{\label{fig:plots} The result of calling \texttt{plot} (left) and \texttt{plotImpHistory} (right) on the \texttt{BorutaOnIrisE} object.}
-\end{figure}
+
 
 As importance scoring is often stochastic and can be degraded due to a presence of shadows, the Boruta selection is a process.
 In each iteration, first shadows are generated, and such extended dataset is fed to an importance provider.
 Original features' importance is then compared with the highest importance of a shadow; and these which score higher are given a \textit{hit}.
-Accumulated hit counts are finally assessed; features which significantly outperform best shadow are claimed confirmed, which these which significantly underperform best shadow are claimed rejected and removed from the set for all subsequent iterations.
+Accumulated hit counts are finally assessed; features which significantly outperform best shadow are claimed confirmed, which these which significantly under-perform best shadow are claimed rejected and removed from the set for all subsequent iterations.
+This loop is illustrated on Figure~\ref{fig:algo}.
+\begin{figure}
+\includegraphics[width=\textwidth]{algo.pdf}
+\caption{\label{fig:algo} Illustration of the main loop of the Boruta algorithm.}
+\end{figure}
 
 The algorithm stops when all features have an established decision, or when a pre-set maximal number of iterations (100 by default) is exhausted.
 In the latter case, the remaining features are claimed \textit{tentative}.
@@ -92,6 +90,15 @@ The graphical summary of a run can be obtained using \texttt{plot} and \texttt{p
 First function uses boxplots to show the distribution of features' importance over Boruta run, using colours to mark final decision; it also draws boxplots for the importance of worst, average and best shadow in each iterations (in blue).
 Second function visualises the same data, but as a function of the iteration number.
 The summary of feature importance and hit counts can be extracted using the \texttt{attStats} convenience function.
+
+\begin{figure}
+<<BorutaPlots,fig=TRUE,echo=FALSE,results=hide,width=10,height=5>>=
+par(mfrow=c(1,2))
+plot(BorutaOnIrisE)
+plotImpHistory(BorutaOnIrisE)
+@
+\caption{\label{fig:plots} The result of calling \texttt{plot} (left) and \texttt{plotImpHistory} (right) on the \texttt{BorutaOnIrisE} object.}
+\end{figure}
 
 <<attStats>>=
 attStats(BorutaOnIrisE)

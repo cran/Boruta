@@ -50,17 +50,37 @@ Boruta<-function(x,...)
 #' @export
 #' @examples
 #' set.seed(777)
-#' #Add some nonsense attributes to iris dataset by shuffling original attributes
+#'
+#' #Boruta on the "small redundant XOR" problem; read ?srx for details
+#' data(srx)
+#' Boruta(Y~.,data=srx)->Boruta.srx
+#'
+#' #Results summary
+#' print(Boruta.srx)
+#'
+#' #Result plot
+#' plot(Boruta.srx)
+#'
+#' #Attribute statistics
+#' attStats(Boruta.srx)
+#'
+#' #Using alternative importance source, rFerns
+#' Boruta(Y~.,data=srx,getImp=getImpFerns)->Boruta.srx.ferns
+#' print(Boruta.srx.ferns)
+#' 
+#' #Verbose
+#' Boruta(Y~.,data=srx,doTrace=2)->Boruta.srx
+#'
+#' \dontrun{
+#' #Boruta on the iris problem extended with artificial irrelevant features
+#' #Generate said features
 #' iris.extended<-data.frame(iris,apply(iris[,-5],2,sample))
 #' names(iris.extended)[6:9]<-paste("Nonsense",1:4,sep="")
 #' #Run Boruta on this data
 #' Boruta(Species~.,data=iris.extended,doTrace=2)->Boruta.iris.extended
 #' #Nonsense attributes should be rejected
 #' print(Boruta.iris.extended)
-#'
-#' #Boruta using rFerns' importance
-#' Boruta(Species~.,data=iris.extended,getImp=getImpFerns)->Boruta.ferns.irisE
-#' print(Boruta.ferns.irisE)
+#' }
 #'
 #' \dontrun{
 #' #Boruta on the HouseVotes84 data from mlbench
@@ -295,3 +315,16 @@ print.Boruta<-function(x,...){
  }
  invisible(x)
 }
+
+#' Small redundant XOR data
+#'
+#' A synthetic data set with 32 rows corresponding to all combinations of values of five logical features, A, B, N1, N2 and N3.
+#' The decision Y is equal to A xor B, hence N1--N3 are irrelevant attributes.
+#' The set also contains 3 additional features, A or B (AoB), A and B (AnB) and not A (nA), which provide a redundant, but still relevant way to reconstruct Y.
+#'
+#' This is set is an easy way to demonstrate the difference between all relevant feature selection methods, which should select all features except N1--N3, and minimal optimal ones, which will probably ignore most of them.
+#' @format A data frame with 8 predictors, 4 relevant: A, B, AoB, AnB and nA, as well as 3 irrelevant N1, N2 and N3, and decision attribute Y.
+#' @source \url{https://mbq.me/blog/relevance-and-redundancy}
+#' @usage data(srx)
+"srx"
+
