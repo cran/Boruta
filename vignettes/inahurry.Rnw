@@ -52,14 +52,14 @@ Boruta(Species~.,data=irisR)
 @
 
 We see that \texttt{SpoilerFeature} has not supplanted any of the original features, despite making them fully redundant.
-One may wonder, however, how came anyone would need something which is clearly redundant?
+One may wonder, however, how come anyone would need something which is clearly redundant?
 There are basically three reasons behind this:
 \begin{itemize}
- \item One may perform feature selection for an insight in which aspects of the phenomenon in question are important are which are not.
- In such case subtle effects possess substantial explanatory value, even if they are masked by stronger interactions.
- \item In some sets, especially of a $p\gg n$ class, nonsense features may have spurious correlations with the decision, arisen purely by chance.
+ \item One may perform feature selection for an insight in which aspects of the phenomenon in question are important and which are not.
+ In such cases subtle effects possess substantial explanatory value, even if they are masked by stronger interactions.
+ \item In some sets, especially of a $p\gg n$ class, nonsense features may have spurious correlations with the decision, arising purely by chance.
  Such interactions may rival or even be stronger than actual mechanisms of the underlying phenomenon, making them apparently redundant.
- All relevant approach won't magically help distinguish both, but will better preserve true patterns.
+ All relevant approaches won't magically help distinguish both, but will better preserve true patterns.
  \item Minimal optimal methods are generally cherry-picking features usable for classification, regardless if this usability is significant or not, which is an easy way to overfitting.
  Boruta is much more robust in this manner.
 \end{itemize}
@@ -71,11 +71,10 @@ Such scores only contribute to the ranking of features, though --- to separate r
 To this end, Boruta uses \textit{shadow features} or \textit{shadows}, which are copies of original features but with randomly mixed values, so that their distribution remains the same yet their importance is wiped out.
 
 
-
 As importance scoring is often stochastic and can be degraded due to a presence of shadows, the Boruta selection is a process.
-In each iteration, first shadows are generated, and such extended dataset is fed to an importance provider.
-Original features' importance is then compared with the highest importance of a shadow; and these which score higher are given a \textit{hit}.
-Accumulated hit counts are finally assessed; features which significantly outperform best shadow are claimed confirmed, which these which significantly under-perform best shadow are claimed rejected and removed from the set for all subsequent iterations.
+In each iteration, first shadows are generated, and such an extended dataset is fed to an importance provider.
+Original features' importance is then compared with the highest importance of a shadow; and those which score higher are given a \textit{hit}.
+Accumulated hit counts are finally assessed; features which significantly outperform best shadow are claimed confirmed, while those which significantly under-perform best shadow are claimed rejected and removed from the set for all subsequent iterations.
 This loop is illustrated on Figure~\ref{fig:algo}.
 \begin{figure}
 \includegraphics[width=\textwidth]{algo.pdf}
@@ -87,7 +86,7 @@ In the latter case, the remaining features are claimed \textit{tentative}.
 
 The process can be observed live with \texttt{doTrace} argument set to 1 (report after each decision), 2 (report after each iteration) or 3 (also report hits); importances in each iteration are also stored in the \texttt{ImpHistory} element of the Boruta object.
 The graphical summary of a run can be obtained using \texttt{plot} and \texttt{plotImpHistory} on the Boruta result object, as shown on Figure~\ref{fig:plots} for the extended iris example.
-First function uses boxplots to show the distribution of features' importance over Boruta run, using colours to mark final decision; it also draws boxplots for the importance of worst, average and best shadow in each iterations (in blue).
+First function uses boxplots to show the distribution of features' importance over Boruta run, using colours to mark final decision; it also draws boxplots for the importance of worst, average and best shadow in each iteration (in blue).
 Second function visualises the same data, but as a function of the iteration number.
 The summary of feature importance and hit counts can be extracted using the \texttt{attStats} convenience function.
 
@@ -122,19 +121,21 @@ Boruta(Species~.,data=irisE,getImp=getImpFerns)
 You can pass arguments to the importance provider by providing it to the Boruta call; for instance, ranger, the default importance provider, makes use of all available CPU threads, won't always be the optimal choice.
 Setting \texttt{num.threads} in the Boruta call will cause it to relay this argument to the \texttt{ranger} function, and hence limit the training process parallelism.
 
+Importance adapters may also be modified by transdapters (functions with names ending with \texttt{Transdapter}) to achieve some additional goals; consult the transdapter vignette or manual for more details.
+
 \section{Caveats}
 Few things worth noting before using Boruta in production:
 \begin{itemize}
 \item Boruta is a heuristic; there are no strict guarantees about its output.
 Whenever possible, try to assess its results, especially in terms of selection stability as classification accuracy may be deceiving \cite{Kursa2014}.
 \item For datasets with lots of features, the default configuration of the importance source is likely insufficient; in the particular case of Random Forest the number of trees is often not large enough to allow the importance scores to stabilise, which in turn often leads to false negatives and unstable results.
-\item Boruta is a strictly serial algorithm, and spends most time waiting for the importance provider --- hence, tweaking this element brings best chance to speed up the selection.
+\item Boruta is a strictly serial algorithm, and spends most time waiting for the importance provider --- hence, tweaking this element brings the best chance to speed up the selection.
 If speed is a concern, one should also avoid the formula interface and directly pass predictor and decision parts of the information system.
 \item Elimination of tentative features becomes practically impossible if they turn out to have very similar importance distribution to the best shadow, and the presence of such does not make the overall Boruta result useless.
-\item Importance history for bigger problems may take impractically huge amount of memory; hence its collection can be turned off with \texttt{holdHistory} argument of the \texttt{Boruta} function.
+\item Importance history for bigger problems may take an impractically huge amount of memory; hence its collection can be turned off with \texttt{holdHistory} argument of the \texttt{Boruta} function.
 This will disable some functionality, though, most notably plotting.
 \item Treatment of missing values and non-standard decision forms (like survival problems) depends on the capacity of the information source.
-\item The original Boruta paper describes the 1.0 version, and algorithm has undergone substantial changes since then, namely the initial, warm-up rounds were removed, the multiple testing correction was introduced, finally the nomenclature has been clarified.
+\item The original Boruta paper describes the 1.0 version, and the algorithm has undergone substantial changes since then, namely the initial, warm-up rounds were removed, the multiple testing correction was introduced, finally the nomenclature has been clarified.
 \end{itemize}
 
 \bibliography{vig}

@@ -1,3 +1,13 @@
+Changes in 8.0:
+ - Faster parser for the formula interface.
+ - Transdapter for handling missing values with importance
+ sources which do not support them.
+ - Transdapter for applying decoherence transformation to input.
+ - Transdapter for conditining importance.
+ - Vignette about transdapters.
+ - TentativeRoughFix fixed to work properly with a single
+ Tentative feature.
+
 Changes in 7.0:
  - Migration from NotABug to GitLab.
  - Improved testing.

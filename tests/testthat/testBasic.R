@@ -44,12 +44,12 @@ test_that("No-Boruta input is rejected",{
 })
 
 #Mocked importance provider that always make Rel* features confirmed, Irr* ones rejected and others tentative
-getImpMock<-function(x,y,...) 
+getImpMock<-function(x,y,tentBias=0,...) 
  sapply(names(x),function(n) 
   if(grepl("^Rel",n)) 7 
   else if(grepl("^Irr",n)) -7 
   else if(grepl("^shadow",n)) 0 
-  else rnorm(1)
+  else rnorm(1)+tentBias
  )
 MockX<-data.frame(Rel1=1:5,Rel2=1:5,Rel3=1:5,Irr1=1:5,Irr2=1:5,Irr3=1:5,Irr4=1:5,Tent1=1:5,Tent2=1:5)
 MockY<-1:5
@@ -63,10 +63,6 @@ test_that("Misc errors are caught",{
  X<-iris[,1:4]
  names(X)[2]<-"shadow.mystery"
  expect_error(Boruta(X,iris$Species),"Attributes with names ")
-
- X<-iris[,1:4]
- X[20,3]<-NA
- expect_error(Boruta(X,iris$Species),"Cannot process NAs in input")
 
  expect_error(Boruta(iris[,-5],iris$Species,maxRuns=10),"maxRuns must be greater ")
 })
@@ -84,7 +80,7 @@ test_that("Models without history are handled correctly",{
 
 test_that("TentativeRoughFix works",{
  set.seed(777)
- Boruta(MockX,MockY,getImp=getImpMock)->B
+ Boruta(MockX,MockY,getImp=getImpMock,tentBias=0.2)->B
  expect_error(TentativeRoughFix(B,averageOver="a"))
  expect_error(TentativeRoughFix(B,averageOver=-11))
  expect_error(TentativeRoughFix(B,averageOver=1:10))
@@ -95,6 +91,19 @@ test_that("TentativeRoughFix works",{
  set.seed(777)
  Boruta(MockX[,1:7],MockY,getImp=getImpMock)->B
  expect_warning(TentativeRoughFix(B))
+
+ set.seed(777)
+ Boruta(MockX[,1:8],MockY,getImp=getImpMock,tentBias=-0.2)->Bf
+ expect_equal(
+  getSelectedAttributes(TentativeRoughFix(Bf)),
+  c("Rel1","Rel2","Rel3")
+ )
+ set.seed(777)
+ Boruta(MockX[,1:8],MockY,getImp=getImpMock,tentBias=0.2)->Bf
+ expect_equal(
+  getSelectedAttributes(TentativeRoughFix(Bf)),
+  c("Rel1","Rel2","Rel3","Tent1")
+ )
 })
 
 test_that("Edge cases are printed",{

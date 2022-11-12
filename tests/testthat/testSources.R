@@ -59,3 +59,4 @@ test_that("Ranger sources work on censored",{
  expect_equal(sort(getSelectedAttributes(Boruta(X,Y))),sort(names(iris)[-1]))
  expect_equal(sort(getSelectedAttributes(Boruta(X,Y,getImp=getImpRfRaw))),sort(names(iris)[-1]))
 })
+

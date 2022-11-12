@@ -46,7 +46,7 @@ Boruta<-function(x,...)
 #' Instead, you can use \code{\link{TentativeRoughFix}} function, which will perform other, weaker test to make a final decision, or simply treat them as undecided in further analysis.
 #' @references Miron B. Kursa, Witold R. Rudnicki (2010). Feature Selection with the Boruta Package.
 #' \emph{Journal of Statistical Software, 36(11)}, p. 1-13.
-#' URL: \url{http://www.jstatsoft.org/v36/i11/}
+#' URL: \doi{10.18637/jss.v036.i11}
 #' @export
 #' @examples
 #' set.seed(777)
@@ -127,8 +127,6 @@ Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,holdHi
  ##Some checks on x & y
  if(length(grep('^shadow',names(x)))>0)
   stop('Attributes with names starting from "shadow" are reserved for internal use. Please rename them.')
- if(any(c(is.na(x),is.na(y))))
-  stop('Cannot process NAs in input. Please remove them.')
  if(maxRuns<11)
   stop('maxRuns must be greater than 10.')
 
@@ -270,17 +268,11 @@ Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,holdHi
 #' @param formula alternatively, formula describing model to be analysed.
 #' @param data in which to interpret formula.
 #' @export
-Boruta.formula<-function(formula,data=.GlobalEnv,...){
- ##Grab and interpret the formula
- stats::terms.formula(formula,data=data)->t
- x<-eval(attr(t,"variables"),data)
- apply(attr(t,"factors"),1,sum)>0->sel
- nam<-rownames(attr(t,"factors"))[sel]
- data.frame(x[sel])->df;names(df)<-nam
- x[[attr(t,"response")]]->dec
+Boruta.formula<-function(formula,data,...){
+ make_df(formula,data,parent.frame())->d
 
  ##Run Boruta
- ans<-Boruta.default(df,dec,...)
+ ans<-Boruta.default(d$X,d$Y,...)
  ans$call<-match.call()
  ans$call[[1]]<-as.name('Boruta')
  formula->ans$call[["formula"]]
@@ -296,7 +288,7 @@ Boruta.formula<-function(formula,data=.GlobalEnv,...){
 #' @return Invisible copy of \code{x}.
 #' @export
 print.Boruta<-function(x,...){
- if(class(x)!='Boruta') stop("This is NOT a Boruta object!")
+ stopifnot(inherits(x,'Boruta'))
  cat(paste('Boruta performed ',dim(x$ImpHistory)[1],' iterations in ',format(x$timeTaken),'.\n',sep=''))
  if(x$roughfixed) cat(paste('Tentatives roughfixed over the last ',x$averageOver,' iterations.\n',sep=''))
  if(sum(x$finalDecision=='Confirmed')==0){
@@ -324,7 +316,7 @@ print.Boruta<-function(x,...){
 #'
 #' This is set is an easy way to demonstrate the difference between all relevant feature selection methods, which should select all features except N1--N3, and minimal optimal ones, which will probably ignore most of them.
 #' @format A data frame with 8 predictors, 4 relevant: A, B, AoB, AnB and nA, as well as 3 irrelevant N1, N2 and N3, and decision attribute Y.
-#' @source \url{https://mbq.me/blog/relevance-and-redundancy}
+#' @source \url{https://blog.mbq.me/relevance-and-redundancy/}
 #' @usage data(srx)
 "srx"
 

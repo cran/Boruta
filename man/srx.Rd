@@ -8,7 +8,7 @@
 A data frame with 8 predictors, 4 relevant: A, B, AoB, AnB and nA, as well as 3 irrelevant N1, N2 and N3, and decision attribute Y.
 }
 \source{
-\url{https://mbq.me/blog/relevance-and-redundancy}
+\url{https://blog.mbq.me/relevance-and-redundancy/}
 }
 \usage{
 data(srx)

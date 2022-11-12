@@ -20,8 +20,7 @@
 #' plot(normHits~meanImp,col=stats$decision,data=stats)
 #' }
 attStats<-function(x){
- if(class(x)!='Boruta')
-  stop('This function needs Boruta object as an argument.')
+ stopifnot(inherits(x,'Boruta'))
  if(is.null(x$ImpHistory))
   stop('Importance history was not stored during the Boruta run.')
  lz<-lapply(1:ncol(x$ImpHistory),function(i) x$ImpHistory[is.finite(x$ImpHistory[,i]),i])
@@ -49,7 +48,7 @@ attStats<-function(x){
 #' print(getSelectedAttributes(Bor.iris))
 #' }
 getSelectedAttributes<-function(x,withTentative=FALSE){
- if(class(x)!='Boruta') stop('This function needs Boruta object as an argument.')
+ stopifnot(inherits(x,'Boruta'))
  names(x$finalDecision)[
   x$finalDecision%in%(if(!withTentative) "Confirmed" else c("Confirmed","Tentative"))
  ]
@@ -79,8 +78,7 @@ getSelectedAttributes<-function(x,withTentative=FALSE){
 #' \code{TRUE} for this code to run.
 #' @export
 TentativeRoughFix<-function(x,averageOver=Inf){
- if(!inherits(x,'Boruta'))
-  stop('This function needs Boruta object as an argument.')
+ stopifnot(inherits(x,'Boruta'))
  if(is.null(x$ImpHistory))
   stop('Importance history was not stored during the Boruta run.')
  if(!is.numeric(averageOver))
@@ -102,7 +100,7 @@ TentativeRoughFix<-function(x,averageOver=Inf){
   averageOver<-nRuns
 
  impHistorySubset<-x$ImpHistory[(nRuns-averageOver+1):nRuns,]
- medianTentImp<-sapply(impHistorySubset[,tentIdx],stats::median)
+ medianTentImp<-apply(impHistorySubset[,tentIdx,drop=FALSE],2,stats::median)
  medianShaMaxImp<-stats::median(impHistorySubset[,'shadowMax'])
  medianTentImp>medianShaMaxImp->toOrdain
 
@@ -160,8 +158,7 @@ generateCol<-function(x,colCode,col,numShadow){
 plot.Boruta<-function(x,colCode=c('green','yellow','red','blue'),sort=TRUE,whichShadow=c(TRUE,TRUE,TRUE),
   col=NULL,xlab='Attributes',ylab='Importance',...){
  #Checking arguments
- if(class(x)!='Boruta')
-  stop('This function needs Boruta object as an argument.')
+ stopifnot(inherits(x,'Boruta'))
  if(is.null(x$ImpHistory))
   stop('Importance history was not stored during the Boruta run.')
 
@@ -213,8 +210,7 @@ plot.Boruta<-function(x,colCode=c('green','yellow','red','blue'),sort=TRUE,which
 plotImpHistory<-function(x,colCode=c('green','yellow','red','blue'),col=NULL,type="l",lty=1,pch=0,
   xlab='Classifier run',ylab='Importance',...){
  #Checking arguments
- if(class(x)!='Boruta')
-  stop('This function needs Boruta object as an argument.')
+ stopifnot(inherits(x,'Boruta'))
  if(is.null(x$ImpHistory))
   stop('Importance history was not stored during the Boruta run.')
  col<-generateCol(x,colCode,col,3)
@@ -234,8 +230,7 @@ plotImpHistory<-function(x,colCode=c('green','yellow','red','blue'),col=NULL,typ
 #' @rdname getFormulae
 #' @export
 getConfirmedFormula<-function(x){
- if(!inherits(x,'Boruta'))
-  stop('This function needs Boruta object as an argument.')
+ stopifnot(inherits(x,'Boruta'))
  if(is.null(x$call[["formula"]]))
   stop('The model for this Boruta run was not a formula.')
  deparse(x$call[["formula"]][[2]])->dec
@@ -246,8 +241,7 @@ getConfirmedFormula<-function(x){
 #' @rdname getFormulae
 #' @export
 getNonRejectedFormula<-function(x){
- if(!inherits(x,'Boruta'))
-  stop('This function needs Boruta object as an argument.')
+ stopifnot(inherits(x,'Boruta'))
  if(is.null(x$call[["formula"]]))
   stop('The model for this Boruta run was not a formula.')
  deparse(x$call[["formula"]][[2]])->dec

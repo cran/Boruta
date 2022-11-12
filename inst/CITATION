@@ -9,12 +9,12 @@ citEntry(entry = "Article",
   volume       = "36",
   number       = "11",
   pages        = "1--13",
-  url          = "http://www.jstatsoft.org/v36/i11/",
+  url          = "https://doi.org/10.18637/jss.v036.i11",
 
   textVersion  =
   paste("Miron B. Kursa, Witold R. Rudnicki (2010).",
         "Feature Selection with the Boruta Package.",
         "Journal of Statistical Software, 36(11), 1-13.",
-        "URL http://www.jstatsoft.org/v36/i11/.")
+        "URL https://doi.org/10.18637/jss.v036.i11.")
 )
 
