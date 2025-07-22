@@ -7,17 +7,17 @@
 #' @name getImpLegacyRf
 #' @rdname getImpLegacyRf
 #' @aliases getImpLegacyRfZ getImpLegacyRfGini getLegacyImpRfRaw
-#' @note The \code{getImpLegacyRfZ} function was a default importance source in Boruta versions prior to 5.0; since then \code{\link{ranger}} Random Forest implementation is used instead of \code{\link[randomForest]{randomForest}}, for speed, memory conservation and an ability to utilise multithreading.
+#' @note The \code{getImpLegacyRfZ} function was a default importance source in Boruta versions prior to 5.0; since then \code{\link[ranger]{ranger}} Random Forest implementation is used instead of \code{\link[randomForest]{randomForest}}, for speed, memory conservation and an ability to use multithreading.
 #' Both importance sources should generally lead to the same results, yet there are differences.
 #'
 #' Most notably, ranger by default treats factor attributes as ordered (and works very slow if instructed otherwise with \code{respect.unordered.factors=TRUE}); on the other hand it lifts 32 levels limit specific to \code{\link[randomForest]{randomForest}}.
 #' To this end, Boruta decision for factor attributes may be different.
 #'
-#' Random Forest methods has two main parameters, number of attributes tried at each split and the number of trees in the forest; first one is called \code{mtry} in both implementations, but the second \code{ntree} in \code{\link[randomForest]{randomForest}} and \code{num.trees} in \code{\link{ranger}}.
+#' Random Forest methods has two main parameters, number of attributes tried at each split and the number of trees in the forest; first one is called \code{mtry} in both implementations, but the second \code{ntree} in \code{\link[randomForest]{randomForest}} and \code{num.trees} in \code{\link[ranger]{ranger}}.
 #' To this end, to maintain compatibility, \code{getImpRf*} functions still accept \code{ntree} parameter relaying it into \code{num.trees}.
 #' Still, both parameters take the same defaults in both implementations (square root of the number all all attributes and 500 respectively).
 #'
-#' Moreover, \code{\link{ranger}} brings some addition capabilities to Boruta, like analysis of survival problems or sticky variables which are always considered on splits.
+#' Moreover, \code{\link[ranger]{ranger}} brings some addition capabilities to Boruta, like analysis of survival problems or sticky variables which are always considered on splits.
 #'
 #' Finally, the results for the same PRNG seed will be different.
 #' @param x data frame of predictors including shadows.
@@ -69,9 +69,9 @@ comment(getImpLegacyRfGini)<-'randomForest Gini index importance'
 #' @aliases getImpRfZ getImpRfGini getImpRfRaw
 #' @param x data frame of predictors including shadows.
 #' @param y response vector.
-#' @param ntree  Number of trees in the forest; copied into \code{\link{ranger}}'s native num.trees, put to retain transparent compatibility with randomForest.
-#' @param num.trees  Number of trees in the forest, as according to \code{\link{ranger}}'s nomenclature. If not given, set to \code{ntree} value. If both are given, \code{num.trees} takes precedence.
-#' @param ... parameters passed to the underlying \code{\link{ranger}} call; they are relayed from \code{...} of \code{\link{Boruta}}.
+#' @param ntree  Number of trees in the forest; copied into \code{\link[ranger]{ranger}}'s native num.trees, put to retain transparent compatibility with randomForest.
+#' @param num.trees  Number of trees in the forest, as according to \code{\link[ranger]{ranger}}'s nomenclature. If not given, set to \code{ntree} value. If both are given, \code{num.trees} takes precedence.
+#' @param ... parameters passed to the underlying \code{\link[ranger]{ranger}} call; they are relayed from \code{...} of \code{\link{Boruta}}.
 #' @note Prior to Boruta 5.0, \code{getImpLegacyRfZ} function was a default importance source in Boruta; see \link{getImpLegacyRf} for more details.
 #' @export
 getImpRfZ<-function(x,y,ntree=500,num.trees=ntree,...){
@@ -137,9 +137,9 @@ comment(getImpRfRaw)<-'ranger raw permutation importance'
 #' @aliases getImpExtraZ getImpExtraGini getImpExtraRaw
 #' @param x data frame of predictors including shadows.
 #' @param y response vector.
-#' @param ntree  Number of trees in the forest; copied into \code{\link{ranger}}'s native num.trees, put to retain transparent compatibility with randomForest.
-#' @param num.trees  Number of trees in the forest, as according to \code{\link{ranger}}'s nomenclature. If not given, set to \code{ntree} value. If both are given, \code{num.trees} takes precedence.
-#' @param ... parameters passed to the underlying \code{\link{ranger}} call; they are relayed from \code{...} of \code{\link{Boruta}}. Note that these function work just by setting \code{splitrule} to \code{"extratrees"}.
+#' @param ntree  Number of trees in the forest; copied into \code{\link[ranger]{ranger}}'s native num.trees, put to retain transparent compatibility with randomForest.
+#' @param num.trees  Number of trees in the forest, as according to \code{\link[ranger]{ranger}}'s nomenclature. If not given, set to \code{ntree} value. If both are given, \code{num.trees} takes precedence.
+#' @param ... parameters passed to the underlying \code{\link[ranger]{ranger}} call; they are relayed from \code{...} of \code{\link{Boruta}}. Note that these function work just by setting \code{splitrule} to \code{"extratrees"}.
 #' @export
 getImpExtraZ<-function(x,y,ntree=500,num.trees=ntree,...)
  getImpRfZ(x,y,ntree=ntree,splitrule="extratrees",...)

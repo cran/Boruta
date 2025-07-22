@@ -1,6 +1,6 @@
 Package: Boruta
 Title: Wrapper Algorithm for All Relevant Feature Selection
-Version: 8.0.0
+Version: 9.0.0
 Imports: ranger
 Suggests: mlbench, rFerns, randomForest, testthat, xgboost, survival
 Authors@R: c(
@@ -20,13 +20,13 @@ Description: An all relevant feature selection wrapper algorithm.
 BugReports: https://gitlab.com/mbq/Boruta/-/issues
 License: GPL (>= 2)
 URL: https://gitlab.com/mbq/Boruta/
-RoxygenNote: 7.2.1
+RoxygenNote: 7.3.2
 Encoding: UTF-8
 NeedsCompilation: no
-Author: Miron Bartosz Kursa [aut, cre]
-    (<https://orcid.org/0000-0001-7672-648X>),
+Author: Miron Bartosz Kursa [aut, cre] (ORCID:
+    <https://orcid.org/0000-0001-7672-648X>),
   Witold Remigiusz Rudnicki [aut]
 Maintainer: Miron Bartosz Kursa <M.Kursa@icm.edu.pl>
-Packaged: 2022-11-11 23:45:54 UTC; mbq
+Packaged: 2025-07-21 18:36:41 UTC; mbq
 Repository: CRAN
-Date/Publication: 2022-11-12 08:30:16 UTC
+Date/Publication: 2025-07-22 15:01:00 UTC

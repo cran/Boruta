@@ -18,11 +18,11 @@ getImpExtraRaw(x, y, ntree = 500, num.trees = ntree, ...)
 
 \item{y}{response vector.}
 
-\item{ntree}{Number of trees in the forest; copied into \code{\link{ranger}}'s native num.trees, put to retain transparent compatibility with randomForest.}
+\item{ntree}{Number of trees in the forest; copied into \code{\link[ranger]{ranger}}'s native num.trees, put to retain transparent compatibility with randomForest.}
 
-\item{num.trees}{Number of trees in the forest, as according to \code{\link{ranger}}'s nomenclature. If not given, set to \code{ntree} value. If both are given, \code{num.trees} takes precedence.}
+\item{num.trees}{Number of trees in the forest, as according to \code{\link[ranger]{ranger}}'s nomenclature. If not given, set to \code{ntree} value. If both are given, \code{num.trees} takes precedence.}
 
-\item{...}{parameters passed to the underlying \code{\link{ranger}} call; they are relayed from \code{...} of \code{\link{Boruta}}. Note that these function work just by setting \code{splitrule} to \code{"extratrees"}.}
+\item{...}{parameters passed to the underlying \code{\link[ranger]{ranger}} call; they are relayed from \code{...} of \code{\link{Boruta}}. Note that these function work just by setting \code{splitrule} to \code{"extratrees"}.}
 }
 \description{
 Those function is intended to be given to a \code{getImp} argument of \code{\link{Boruta}} function to be called by the Boruta algorithm as an importance source.

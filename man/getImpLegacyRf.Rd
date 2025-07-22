@@ -26,17 +26,17 @@ Those function is intended to be given to a \code{getImp} argument of \code{\lin
 \code{getImpLegacyRfZ} generates default, normalized permutation importance, \code{getImpLegacyRfRaw} raw permutation importance, finally \code{getImpLegacyRfGini} generates Gini index importance, all using \code{\link[randomForest]{randomForest}} as a Random Forest algorithm implementation.
 }
 \note{
-The \code{getImpLegacyRfZ} function was a default importance source in Boruta versions prior to 5.0; since then \code{\link{ranger}} Random Forest implementation is used instead of \code{\link[randomForest]{randomForest}}, for speed, memory conservation and an ability to utilise multithreading.
+The \code{getImpLegacyRfZ} function was a default importance source in Boruta versions prior to 5.0; since then \code{\link[ranger]{ranger}} Random Forest implementation is used instead of \code{\link[randomForest]{randomForest}}, for speed, memory conservation and an ability to use multithreading.
 Both importance sources should generally lead to the same results, yet there are differences.
 
 Most notably, ranger by default treats factor attributes as ordered (and works very slow if instructed otherwise with \code{respect.unordered.factors=TRUE}); on the other hand it lifts 32 levels limit specific to \code{\link[randomForest]{randomForest}}.
 To this end, Boruta decision for factor attributes may be different.
 
-Random Forest methods has two main parameters, number of attributes tried at each split and the number of trees in the forest; first one is called \code{mtry} in both implementations, but the second \code{ntree} in \code{\link[randomForest]{randomForest}} and \code{num.trees} in \code{\link{ranger}}.
+Random Forest methods has two main parameters, number of attributes tried at each split and the number of trees in the forest; first one is called \code{mtry} in both implementations, but the second \code{ntree} in \code{\link[randomForest]{randomForest}} and \code{num.trees} in \code{\link[ranger]{ranger}}.
 To this end, to maintain compatibility, \code{getImpRf*} functions still accept \code{ntree} parameter relaying it into \code{num.trees}.
 Still, both parameters take the same defaults in both implementations (square root of the number all all attributes and 500 respectively).
 
-Moreover, \code{\link{ranger}} brings some addition capabilities to Boruta, like analysis of survival problems or sticky variables which are always considered on splits.
+Moreover, \code{\link[ranger]{ranger}} brings some addition capabilities to Boruta, like analysis of survival problems or sticky variables which are always considered on splits.
 
 Finally, the results for the same PRNG seed will be different.
 }
