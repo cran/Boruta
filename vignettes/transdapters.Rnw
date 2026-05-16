@@ -14,9 +14,9 @@ Boruta is essentially a significance test for the importance of features generat
 This source is usually the normalised permutational importance from a Random Forest \cite{Breiman2001} model, although other options are possible.
 The interface between Boruta and importance source is called \emph{importance adapter}, which is an R function fed into \texttt{getImp} argument of the \texttt{Boruta} function.
 They should expect three arguments, \texttt{x}, for predictors table with shadows, \texttt{y}, for the decision, and \texttt{...}, for arbitrary additional arguments relayed from the Boruta call.
-For instance, \texttt{Boruta(Species~.,iris,num.threads=1)} is going to pass the \texttt{num.threads} argument to the adapter function, which in turn will append it to its call to \texttt{ranger}.
+For instance, \texttt{Boruta(Species~.,iris,threads=1)} is going to pass the \texttt{threads} argument to the adapter function, which in turn will append it to its call to \texttt{fru}.
 The adapter output is expected to be a numerical vector of the same length as \texttt{ncol(x)}, with $i$-th element being the importance of the $i$-th column of \texttt{x}; importance scale is arbitrary, but it must be a finite real number and rise with feature importance.
-Adapters shipped with the package are, by convention, given names starting with \texttt{getImp}, with the default called \texttt{getImpRfZ}.
+Adapters shipped with the package are, by convention, given names starting with \texttt{getImp}, with the default called \texttt{getImpFruZ}.
 
 Transdapters are functions which wrap the adapter function with additional behaviours --- they may intercept and modify the transient data set produced for the adapter, as well as modify the returned importance scores.
 They are implemented as functions expecting at least one argument, the adapter function, and immediately returning a function wrapping the given adapter.
@@ -25,7 +25,7 @@ One can write an example no-op transdapter in the following way:
 <<noop>>=
 library(Boruta)
 
-noopTransdapter<-function(adapter=getImpRfZ){
+noopTransdapter<-function(adapter=getImpFruZ){
  adapter
 }
 @
@@ -38,11 +38,11 @@ Boruta(Species~.,iris,getImp=noopTransdapter())
 
 \noindent As expected, this transdpater has not altered the Boruta result.
 
-The Boruta package ships with several experimental transdapters.
+The Boruta package ships with several transdapters.
 Let us now briefly discuss each of them.
 
 \section{Impute transdapter}
-Many potential importance sources, in particular the default ranger \cite{Wright2015} implementation of Random Forest, can't handle missing values (\texttt{NA}s) in its input.
+Many potential importance sources, in particular the default fru implementation of Random Forest, can't handle missing values (\texttt{NA}s) in its input.
 One can avoid this problem by performing imputation, that is a process of filling missing values with substitutes generated in some way, depending on the analysis aims and assumptions.
 The problem here is that such a process may spuriously increase the importance of imputed features, bringing bias to the Boruta output, in particular when the imputation process uses the decision feature for its inference.
 
@@ -63,7 +63,7 @@ holes<-cbind(
 )
 srx_na[holes]<-NA
 # Use impute transdapter to mitigate them with internal imputation
-Boruta(Y~.,srx_na,getImp=imputeTransdapter(getImpRfZ))
+Boruta(Y~.,srx_na,getImp=imputeTransdapter(getImpFruZ))
 @
 
 The precise method of imputation is to fill gaps with a random sample of other values in a feature, taken with replacement. 

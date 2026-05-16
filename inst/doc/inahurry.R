@@ -44,12 +44,3 @@ plotImpHistory(BorutaOnIrisE)
 ### code chunk number 5: attStats
 ###################################################
 attStats(BorutaOnIrisE)
-
-
-###################################################
-### code chunk number 6: BorutaFe
-###################################################
-library(rFerns)
-Boruta(Species~.,data=irisE,getImp=getImpFerns)
-
-

@@ -43,13 +43,3 @@ If \code{col} is given and \code{sort} is \code{TRUE}, the \code{col} will be pe
 
 This function will throw an error when \code{x} lacks importance history, i.e., was made with \code{holdHistory} set to \code{FALSE}.
 }
-\examples{
-\dontrun{
-library(mlbench); data(HouseVotes84)
-na.omit(HouseVotes84)->hvo
-#Takes some time, so be patient
-Boruta(Class~.,data=hvo,doTrace=2)->Bor.hvo
-print(Bor.hvo)
-plot(Bor.hvo)
-}
-}

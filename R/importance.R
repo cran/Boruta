@@ -23,16 +23,6 @@
 #' @param x data frame of predictors including shadows.
 #' @param y response vector.
 #' @param ... parameters passed to the underlying \code{\link[randomForest]{randomForest}} call; they are relayed from \code{...} of \code{\link{Boruta}}.
-#' @examples
-#' set.seed(777)
-#' #Add some nonsense attributes to iris dataset by shuffling original attributes
-#' iris.extended<-data.frame(iris,apply(iris[,-5],2,sample))
-#' names(iris.extended)[6:9]<-paste("Nonsense",1:4,sep="")
-#' #Run Boruta on this data
-#' Boruta(Species~.,getImp=getImpLegacyRfZ,
-#'  data=iris.extended,doTrace=2)->Boruta.iris.extended
-#' #Nonsense attributes should be rejected
-#' print(Boruta.iris.extended)
 #' @export
 getImpLegacyRfZ<-function(x,y,...){
  randomForest::randomForest(x,y,
@@ -59,8 +49,44 @@ getImpLegacyRfGini<-function(x,y,...){
 }
 comment(getImpLegacyRfGini)<-'randomForest Gini index importance'
 
+#' Fru Random Forest importance adapters
+#'
+#' Those function is intended to be given to a \code{getImp} argument of \code{\link{Boruta}} function to be called by the Boruta algorithm as an importance source.
+#' \code{getImpFruZ} generates default, normalized permutation importance while \code{getImpFruRaw} raw permutation importance.
+#' Fru does not support Gini index importance.
+#' @name getImpFru
+#' @rdname getImpFru
+#' @aliases getImpFruZ getImFruRaw
+#' @param x data frame of predictors including shadows.
+#' @param y response vector.
+#' @param ntree  Number of trees in the forest; copied into \code{\link[fru]{fru}}'s native \code{trees}, put to retain transparent compatibility with randomForest.
+#' @param trees  Number of trees in the forest, as according to \code{\link[fru]{fru}}'s nomenclature. If not given, set to \code{ntree} value. If both are given, \code{trees} takes precedence.
+#' @param num.threads Number of computing threads to use; copied into \code{\link[fru]{fru}}'s native \code{threads}, put to retain transparent compatibility with ranger.
+#' @param threads Number of computing threads to use, as according to \code{\link[fru]{fru}}'s nomenclature.
+#' If not given, set to \code{num.threads}.
+#' If both are given, \code{threads} takes precedence.
+#' Default value of zero means all available threads.
+#' @param ... parameters passed to the underlying \code{\link[fru]{fru}} call; they are relayed from \code{...} of \code{\link{Boruta}}.
+#' @note In prior versions of Boruta, other implementations of Random Forest were used as a default; prior to 5.0.0, randomForest package was used, and the default adapter used back then is available as \code{\link{getImpLegacyRf}}.
+#' Prior to 10.0, ranger package was used with \code{\link{getImpRfZ}}.
+#' @export
+getImpFruZ<-function(x,y,ntree=500,trees=ntree,num.threads=0,threads=num.threads,...){
+ if(inherits(y,"Surv"))
+  stop("Fru doesn't support censored data; try getImpRfZ as an importance source")
+ fru::importance(fru::fru(x,y,trees=trees,importance=TRUE,threads=threads,...),scale=TRUE)
+}
+comment(getImpFruZ)<-'fru normalized permutation importance'
 
-#' ranger Random Forest importance adapters
+#' @rdname getImpFru
+#' @export
+getImpFruRaw<-function(x,y,ntree=500,trees=ntree,num.threads=0,threads=num.threads,...){
+ if(inherits(y,"Surv"))
+  stop("Fru doesn't support censored data; try getImpRfRaw as an importance source")
+ fru::importance(fru::fru(x,y,trees=trees,importance=TRUE,threads=threads,...),scale=FALSE)
+}
+comment(getImpFruZ)<-'fru raw permutation importance'
+
+#' Ranger Random Forest importance adapters
 #'
 #' Those function is intended to be given to a \code{getImp} argument of \code{\link{Boruta}} function to be called by the Boruta algorithm as an importance source.
 #' \code{getImpRfZ} generates default, normalized permutation importance, \code{getImpRfRaw} raw permutation importance, finally \code{getImpRfGini} generates Gini index importance.
@@ -72,23 +98,16 @@ comment(getImpLegacyRfGini)<-'randomForest Gini index importance'
 #' @param ntree  Number of trees in the forest; copied into \code{\link[ranger]{ranger}}'s native num.trees, put to retain transparent compatibility with randomForest.
 #' @param num.trees  Number of trees in the forest, as according to \code{\link[ranger]{ranger}}'s nomenclature. If not given, set to \code{ntree} value. If both are given, \code{num.trees} takes precedence.
 #' @param ... parameters passed to the underlying \code{\link[ranger]{ranger}} call; they are relayed from \code{...} of \code{\link{Boruta}}.
-#' @note Prior to Boruta 5.0, \code{getImpLegacyRfZ} function was a default importance source in Boruta; see \link{getImpLegacyRf} for more details.
+#' @note \code{getImpRfZ} was the default importance source between versions 5.0.0 and 10.0.0. Prior to Boruta 5.0, \code{getImpLegacyRfZ} function was a default; see \link{getImpLegacyRf} for more details.
 #' @export
 getImpRfZ<-function(x,y,ntree=500,num.trees=ntree,...){
  if(inherits(y,"Surv")){
-  x$shadow.Boruta.time<-y[,"time"]
-  x$shadow.Boruta.status<-y[,"status"]
-  return(ranger::ranger(data=x,
-   dependent.variable.name="shadow.Boruta.time",
-   status.variable.name="shadow.Boruta.status",
+  return(ranger::ranger(x=x,y=y,
    num.trees=num.trees,importance="permutation",
    scale.permutation.importance=TRUE,
    write.forest=FALSE,...)$variable.importance)
  }
- #Abusing the fact that Boruta disallows attributes with names
- # starting from "shadow"
- x$shadow.Boruta.decision<-y
- ranger::ranger(data=x,dependent.variable.name="shadow.Boruta.decision",
+ ranger::ranger(x=x,y=y,
   num.trees=num.trees,importance="permutation",
   scale.permutation.importance=TRUE,
   write.forest=FALSE,...)$variable.importance
@@ -100,8 +119,7 @@ comment(getImpRfZ)<-'ranger normalized permutation importance'
 getImpRfGini<-function(x,y,ntree=500,num.trees=ntree,...){
  if(inherits(y,"Surv"))
   stop("Ranger cannot produce Gini importance for survival problems.")
- x$shadow.Boruta.decision<-y
- ranger::ranger(data=x,dependent.variable.name="shadow.Boruta.decision",
+ ranger::ranger(x=x,y=y,
   num.trees=num.trees,importance="impurity",
   scale.permutation.importance=FALSE,
   write.forest=FALSE,...)$variable.importance
@@ -112,51 +130,16 @@ comment(getImpRfGini)<-'ranger Gini index importance'
 #' @export
 getImpRfRaw<-function(x,y,ntree=500,num.trees=ntree,...){
  if(inherits(y,"Surv")){
-  x$shadow.Boruta.time<-y[,"time"]
-  x$shadow.Boruta.status<-y[,"status"]
-  return(ranger::ranger(data=x,
-   dependent.variable.name="shadow.Boruta.time",
-   status.variable.name="shadow.Boruta.status",
+  return(ranger::ranger(x=x,y=y,
    num.trees=num.trees,importance="permutation",
    write.forest=FALSE,...)$variable.importance)
  }
- x$shadow.Boruta.decision<-y
- ranger::ranger(data=x,dependent.variable.name="shadow.Boruta.decision",
+ ranger::ranger(x=x,y=y,
   num.trees=num.trees,importance="permutation",
   scale.permutation.importance=FALSE,
   write.forest=FALSE,...)$variable.importance
 }
 comment(getImpRfRaw)<-'ranger raw permutation importance'
-
-#' ranger Extra-trees importance adapters
-#'
-#' Those function is intended to be given to a \code{getImp} argument of \code{\link{Boruta}} function to be called by the Boruta algorithm as an importance source.
-#' \code{getImpExtraZ} generates default, normalized permutation importance, \code{getImpExtraRaw} raw permutation importance, finally \code{getImpExtraGini} generates Gini impurity importance.
-#' @name getImpExtra
-#' @rdname getImpExtra
-#' @aliases getImpExtraZ getImpExtraGini getImpExtraRaw
-#' @param x data frame of predictors including shadows.
-#' @param y response vector.
-#' @param ntree  Number of trees in the forest; copied into \code{\link[ranger]{ranger}}'s native num.trees, put to retain transparent compatibility with randomForest.
-#' @param num.trees  Number of trees in the forest, as according to \code{\link[ranger]{ranger}}'s nomenclature. If not given, set to \code{ntree} value. If both are given, \code{num.trees} takes precedence.
-#' @param ... parameters passed to the underlying \code{\link[ranger]{ranger}} call; they are relayed from \code{...} of \code{\link{Boruta}}. Note that these function work just by setting \code{splitrule} to \code{"extratrees"}.
-#' @export
-getImpExtraZ<-function(x,y,ntree=500,num.trees=ntree,...)
- getImpRfZ(x,y,ntree=ntree,splitrule="extratrees",...)
-comment(getImpExtraZ)<-'ranger normalized permutation importance'
-
-#' @rdname getImpExtra
-#' @export
-getImpExtraGini<-function(x,y,ntree=500,num.trees=ntree,...)
- getImpRfGini(x,y,ntree=ntree,splitrule="extratrees",...)
-comment(getImpExtraGini)<-'ranger extra-trees Gini index importance'
-
-#' @rdname getImpExtra
-#' @export
-getImpExtraRaw<-function(x,y,ntree=500,num.trees=ntree,...)
- getImpRfRaw(x,y,ntree=ntree,splitrule="extratrees",...)
-comment(getImpExtraRaw)<-'ranger extra-trees raw permutation importance'
-
 
 #' Random Ferns importance
 #'
@@ -174,35 +157,3 @@ getImpFerns<-function(x,y,...){
 }
 comment(getImpFerns)<-'rFerns importance'
 
-#' Xgboost importance
-#'
-#' This function is intended to be given to a \code{getImp} argument of \code{\link{Boruta}} function to be called by the Boruta algorithm as an importance source.
-#' This functionality is inspired by the Python package BoostARoota by Chase DeHan.
-#' In practice, due to the eager way XgBoost works, this adapter changes Boruta into minimal optimal method, hence I strongly recommend against using this.
-#' @param x data frame of predictors including shadows.
-#' @param y response vector.
-#' @param nrounds Number of rounds; passed to the underlying \code{\link[xgboost]{xgboost}} call.
-#' @param verbose Verbosity level of xgboost; either 0 (silent) or 1 (progress reports). Passed to the underlying \code{\link[xgboost]{xgboost}} call.
-#' @param ... other parameters passed to the underlying \code{\link[xgboost]{xgboost}} call.
-#' Similarly as \code{nrounds} and \code{verbose}, they are relayed from \code{...} of \code{\link{Boruta}}.
-#' For convenience, this function sets \code{nrounds} to 5 and verbose to 0, but this can be overridden.
-#' @note Only dense matrix interface is supported; all predictions given to \code{\link{Boruta}} call have to be numeric (not integer).
-#' Categorical features should be split into indicator attributes.
-#' @references \url{https://github.com/chasedehan/BoostARoota}
-#' @export
-getImpXgboost<-function(x,y,nrounds=5,verbose=0,...){
- for(e in 1:ncol(x)) x[,e]<-as.numeric(x[,e])
- xgboost::xgb.importance(
-  model=xgboost::xgboost(
-   data=as.matrix(x),
-   label=y,
-   nrounds=nrounds,
-   verbose=verbose,
-   ...
-  )
- )->imp
- stats::setNames(rep(0,ncol(x)),colnames(x))->ans
- ans[imp$Feature]<-imp$Gain
- ans
-}
-comment(getImpXgboost)<-'xgboost gain importance'

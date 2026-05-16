@@ -1,3 +1,17 @@
+Changes in 10.0:
+ - Switch to fru as a default importance source provider; this
+ will be faster, yet will provide slightly different results
+ due to a stochastic nature of Random Forest. Fru also doesn't
+ support Gini importance, censored data and requires Rust
+ for compilation. To go back to ranger, load it and use
+ getImp=getImpRfZ in the Boruta call.
+ - Direct Xgboost support was dropped; this is not a good idea
+ but one can use custom adapter to restore this functionality.
+ - Ranger extra trees importance adapters were removed, one can
+ restore this by using one of getImpRf* adapters and providing
+ spliture="extratrees" in the Boruta call.
+ - Documentation updates.
+
 Changes in 9.0:
  - Documentation updates.
 

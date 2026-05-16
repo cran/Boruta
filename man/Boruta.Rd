@@ -16,7 +16,7 @@ Boruta(x, ...)
   maxRuns = 100,
   doTrace = 0,
   holdHistory = TRUE,
-  getImp = getImpRfZ,
+  getImp = getImpFruZ,
   ...
 )
 
@@ -27,7 +27,7 @@ Boruta(x, ...)
 
 \item{...}{additional parameters passed to \code{getImp}.}
 
-\item{y}{response vector; factor for classification, numeric vector for regression, \code{Surv} object for survival (supports depends on importance adapter capabilities).}
+\item{y}{response vector; factor for classification, numeric vector for regression, \code{Surv} object for survival (support depends on importance adapter capabilities).}
 
 \item{pValue}{confidence level. Default value should be used.}
 
@@ -41,8 +41,8 @@ You may increase it to resolve attributes left Tentative.}
 \item{holdHistory}{if set to \code{TRUE}, the full history of importance is stored and returned as the \code{ImpHistory} element of the result.
 Can be used to decrease a memory footprint of Boruta in case this side data is not used, especially when the number of attributes is huge; yet it disables plotting of such made \code{Boruta} objects and the use of the \code{\link{TentativeRoughFix}} function.}
 
-\item{getImp}{function used to obtain attribute importance.
-The default is getImpRfZ, which runs random forest from the \code{ranger} package and gathers Z-scores of mean decrease accuracy measure.
+\item{getImp}{function used to obtain attribute importance, called importance adapter in this documentation.
+The default is getImpFruZ, which runs Random Forest implementation from the \code{fru} package and gathers Z-scores of mean decrease accuracy measure.
 It should return a numeric vector of a size identical to the number of columns of its first argument, containing importance measure of respective attributes.
 Any order-preserving transformation of this measure will yield the same result.
 It is assumed that more important attributes get higher importance. +-Inf are accepted, NaNs and NAs are treated as 0s, with a warning.}
@@ -76,71 +76,6 @@ If the second scenario occurs, some attributes may be left without a decision.
 They are claimed Tentative.
 You may try to extend \code{maxRuns} or lower \code{pValue} to clarify them, but in some cases their importances do fluctuate too much for Boruta to converge.
 Instead, you can use \code{\link{TentativeRoughFix}} function, which will perform other, weaker test to make a final decision, or simply treat them as undecided in further analysis.
-}
-\examples{
-set.seed(777)
-
-#Boruta on the "small redundant XOR" problem; read ?srx for details
-data(srx)
-Boruta(Y~.,data=srx)->Boruta.srx
-
-#Results summary
-print(Boruta.srx)
-
-#Result plot
-plot(Boruta.srx)
-
-#Attribute statistics
-attStats(Boruta.srx)
-
-#Using alternative importance source, rFerns
-Boruta(Y~.,data=srx,getImp=getImpFerns)->Boruta.srx.ferns
-print(Boruta.srx.ferns)
-
-#Verbose
-Boruta(Y~.,data=srx,doTrace=2)->Boruta.srx
-
-\dontrun{
-#Boruta on the iris problem extended with artificial irrelevant features
-#Generate said features
-iris.extended<-data.frame(iris,apply(iris[,-5],2,sample))
-names(iris.extended)[6:9]<-paste("Nonsense",1:4,sep="")
-#Run Boruta on this data
-Boruta(Species~.,data=iris.extended,doTrace=2)->Boruta.iris.extended
-#Nonsense attributes should be rejected
-print(Boruta.iris.extended)
-}
-
-\dontrun{
-#Boruta on the HouseVotes84 data from mlbench
-library(mlbench); data(HouseVotes84)
-na.omit(HouseVotes84)->hvo
-#Takes some time, so be patient
-Boruta(Class~.,data=hvo,doTrace=2)->Bor.hvo
-print(Bor.hvo)
-plot(Bor.hvo)
-plotImpHistory(Bor.hvo)
-}
-\dontrun{
-#Boruta on the Ozone data from mlbench
-library(mlbench); data(Ozone)
-library(randomForest)
-na.omit(Ozone)->ozo
-Boruta(V4~.,data=ozo,doTrace=2)->Bor.ozo
-cat('Random forest run on all attributes:\n')
-print(randomForest(V4~.,data=ozo))
-cat('Random forest run only on confirmed attributes:\n')
-print(randomForest(ozo[,getSelectedAttributes(Bor.ozo)],ozo$V4))
-}
-\dontrun{
-#Boruta on the Sonar data from mlbench
-library(mlbench); data(Sonar)
-#Takes some time, so be patient
-Boruta(Class~.,data=Sonar,doTrace=2)->Bor.son
-print(Bor.son)
-#Shows important bands
-plot(Bor.son,sort=FALSE)
-}
 }
 \references{
 Miron B. Kursa, Witold R. Rudnicki (2010). Feature Selection with the Boruta Package.

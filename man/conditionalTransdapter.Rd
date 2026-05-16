@@ -4,7 +4,7 @@
 \alias{conditionalTransdapter}
 \title{Conditional transdapter}
 \usage{
-conditionalTransdapter(groups, adapter = getImpRfZ)
+conditionalTransdapter(groups, adapter = getImpFruZ)
 }
 \arguments{
 \item{groups}{groups.}

@@ -12,9 +12,9 @@ Boruta<-function(x,...)
 #' @rdname Boruta
 #' @method Boruta default
 #' @param x data frame of predictors.
-#' @param y response vector; factor for classification, numeric vector for regression, \code{Surv} object for survival (supports depends on importance adapter capabilities).
-#' @param getImp function used to obtain attribute importance.
-#' The default is getImpRfZ, which runs random forest from the \code{ranger} package and gathers Z-scores of mean decrease accuracy measure.
+#' @param y response vector; factor for classification, numeric vector for regression, \code{Surv} object for survival (support depends on importance adapter capabilities).
+#' @param getImp function used to obtain attribute importance, called importance adapter in this documentation.
+#' The default is getImpFruZ, which runs Random Forest implementation from the \code{fru} package and gathers Z-scores of mean decrease accuracy measure.
 #' It should return a numeric vector of a size identical to the number of columns of its first argument, containing importance measure of respective attributes.
 #' Any order-preserving transformation of this measure will yield the same result.
 #' It is assumed that more important attributes get higher importance. +-Inf are accepted, NaNs and NAs are treated as 0s, with a warning.
@@ -48,71 +48,7 @@ Boruta<-function(x,...)
 #' \emph{Journal of Statistical Software, 36(11)}, p. 1-13.
 #' URL: \doi{10.18637/jss.v036.i11}
 #' @export
-#' @examples
-#' set.seed(777)
-#'
-#' #Boruta on the "small redundant XOR" problem; read ?srx for details
-#' data(srx)
-#' Boruta(Y~.,data=srx)->Boruta.srx
-#'
-#' #Results summary
-#' print(Boruta.srx)
-#'
-#' #Result plot
-#' plot(Boruta.srx)
-#'
-#' #Attribute statistics
-#' attStats(Boruta.srx)
-#'
-#' #Using alternative importance source, rFerns
-#' Boruta(Y~.,data=srx,getImp=getImpFerns)->Boruta.srx.ferns
-#' print(Boruta.srx.ferns)
-#' 
-#' #Verbose
-#' Boruta(Y~.,data=srx,doTrace=2)->Boruta.srx
-#'
-#' \dontrun{
-#' #Boruta on the iris problem extended with artificial irrelevant features
-#' #Generate said features
-#' iris.extended<-data.frame(iris,apply(iris[,-5],2,sample))
-#' names(iris.extended)[6:9]<-paste("Nonsense",1:4,sep="")
-#' #Run Boruta on this data
-#' Boruta(Species~.,data=iris.extended,doTrace=2)->Boruta.iris.extended
-#' #Nonsense attributes should be rejected
-#' print(Boruta.iris.extended)
-#' }
-#'
-#' \dontrun{
-#' #Boruta on the HouseVotes84 data from mlbench
-#' library(mlbench); data(HouseVotes84)
-#' na.omit(HouseVotes84)->hvo
-#' #Takes some time, so be patient
-#' Boruta(Class~.,data=hvo,doTrace=2)->Bor.hvo
-#' print(Bor.hvo)
-#' plot(Bor.hvo)
-#' plotImpHistory(Bor.hvo)
-#' }
-#' \dontrun{
-#' #Boruta on the Ozone data from mlbench
-#' library(mlbench); data(Ozone)
-#' library(randomForest)
-#' na.omit(Ozone)->ozo
-#' Boruta(V4~.,data=ozo,doTrace=2)->Bor.ozo
-#' cat('Random forest run on all attributes:\n')
-#' print(randomForest(V4~.,data=ozo))
-#' cat('Random forest run only on confirmed attributes:\n')
-#' print(randomForest(ozo[,getSelectedAttributes(Bor.ozo)],ozo$V4))
-#' }
-#' \dontrun{
-#' #Boruta on the Sonar data from mlbench
-#' library(mlbench); data(Sonar)
-#' #Takes some time, so be patient
-#' Boruta(Class~.,data=Sonar,doTrace=2)->Bor.son
-#' print(Bor.son)
-#' #Shows important bands
-#' plot(Bor.son,sort=FALSE)
-#' }
-Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,holdHistory=TRUE,getImp=getImpRfZ,...){
+Boruta.default<-function(x,y,pValue=0.01,mcAdj=TRUE,maxRuns=100,doTrace=0,holdHistory=TRUE,getImp=getImpFruZ,...){
  #Timer starts... now!
  timeStart<-Sys.time()
 

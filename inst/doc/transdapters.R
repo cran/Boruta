@@ -5,7 +5,7 @@
 ###################################################
 library(Boruta)
 
-noopTransdapter<-function(adapter=getImpRfZ){
+noopTransdapter<-function(adapter=getImpFruZ){
  adapter
 }
 
@@ -32,7 +32,7 @@ holes<-cbind(
 )
 srx_na[holes]<-NA
 # Use impute transdapter to mitigate them with internal imputation
-Boruta(Y~.,srx_na,getImp=imputeTransdapter(getImpRfZ))
+Boruta(Y~.,srx_na,getImp=imputeTransdapter(getImpFruZ))
 
 
 ###################################################
@@ -40,5 +40,3 @@ Boruta(Y~.,srx_na,getImp=imputeTransdapter(getImpRfZ))
 ###################################################
 set.seed(17)
 Boruta(Y~.,srx,getImp=decohereTransdapter())
-
-

@@ -5,7 +5,7 @@
 \alias{getImpRfZ}
 \alias{getImpRfGini}
 \alias{getImpRfRaw}
-\title{ranger Random Forest importance adapters}
+\title{Ranger Random Forest importance adapters}
 \usage{
 getImpRfZ(x, y, ntree = 500, num.trees = ntree, ...)
 
@@ -29,5 +29,5 @@ Those function is intended to be given to a \code{getImp} argument of \code{\lin
 \code{getImpRfZ} generates default, normalized permutation importance, \code{getImpRfRaw} raw permutation importance, finally \code{getImpRfGini} generates Gini index importance.
 }
 \note{
-Prior to Boruta 5.0, \code{getImpLegacyRfZ} function was a default importance source in Boruta; see \link{getImpLegacyRf} for more details.
+\code{getImpRfZ} was the default importance source between versions 5.0.0 and 10.0.0. Prior to Boruta 5.0, \code{getImpLegacyRfZ} function was a default; see \link{getImpLegacyRf} for more details.
 }

@@ -17,12 +17,3 @@ A character vector with names of the relevant attributes.
 \description{
 \code{getSelectedAttributes} returns a vector of names of attributes selected during a Boruta run.
 }
-\examples{
-\dontrun{
-data(iris)
-#Takes some time, so be patient
-Boruta(Species~.,data=iris,doTrace=2)->Bor.iris
-print(Bor.iris)
-print(getSelectedAttributes(Bor.iris))
-}
-}

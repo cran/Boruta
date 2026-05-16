@@ -44,12 +44,3 @@ Alternative plot method for Boruta objects, showing matplot of attribute importa
 \note{
 This function will throw an error when \code{x} lacks importance history, i.e., was made with \code{holdHistory} set to \code{FALSE}.
 }
-\examples{
-\dontrun{
-library(mlbench); data(Sonar)
-#Takes some time, so be patient
-Boruta(Class~.,data=Sonar,doTrace=2)->Bor.son
-print(Bor.son)
-plotImpHistory(Bor.son)
-}
-}
